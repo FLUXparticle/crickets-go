@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "build": "ng build --output-path ../dist/static/app"
+    "build": "ng build --output-path static/app"
   },
   "private": true,
   "dependencies": {

@@ -17,7 +17,7 @@ $(BACKEND_DEST): $(BACKEND_SRC)
 
 frontend: $(FRONTEND_DEST)
 $(FRONTEND_DEST): $(FRONTEND_SRC)
-	cd frontend && npm install && npm run build
+	cd frontend && npm install && ng build --output-path ../dist/static/app
 
 docker-container:
 	docker build -t crickets:latest .
