@@ -1,7 +1,8 @@
 <nav>
-    <a href="/">Profile</a>
-    <a routerLink="/chat" routerLinkActive="active">Chat</a>
+    {{ username }}
+    <a routerLink="/profile" routerLinkActive="active">Profile</a>
     <a routerLink="/timeline" routerLinkActive="active">Timeline</a>
+    <a routerLink="/chat" routerLinkActive="active">Chat</a>
 </nav>
 <div class="container">
     <router-outlet></router-outlet>
