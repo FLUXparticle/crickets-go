@@ -1,0 +1,33 @@
+<h1>Timeline ({{ username }})</h1>
+<ul>
+    <li *ngFor="let post of posts">
+        <span>{{ post.creator.username }}</span>:
+        <span>{{ post.content }}</span>
+    </li>
+</ul>
+
+<hr>
+
+<div>
+    <h2>Neuer Post</h2>
+    <form (ngSubmit)="createPost()">
+        <input type="text" [(ngModel)]="newPostContent" name="content" placeholder="Inhalt">
+        <button type="submit">Posten</button>
+    </form>
+</div>
+
+<hr>
+
+<div>
+    <h2>Suche</h2>
+    <form (ngSubmit)="searchPosts()">
+        <input type="text" [(ngModel)]="searchQuery" name="searchQuery" placeholder="Suchbegriff">
+        <button type="submit">Suchen</button>
+    </form>
+    <ul>
+        <li *ngFor="let searchResult of searchResults">
+            <span>{{ searchResult.creator.username }}</span>:
+            <span>{{ searchResult.content }}</span>
+        </li>
+    </ul>
+</div>

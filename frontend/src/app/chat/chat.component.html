@@ -1,0 +1,14 @@
+<h1>Nachrichten</h1>
+<ul>
+    <ng-container *ngFor="let message of messages">
+        <li *ngIf="message">{{ message }}</li>
+    </ng-container>
+</ul>
+
+<hr>
+
+<div>
+    <h2>Neue Nachricht</h2>
+    <input type="text" [(ngModel)]="newMessage" (input)="sendPartialMessage()" (keydown.enter)="sendMessage()" placeholder="Text"/>
+    <button (click)="sendMessage()">Senden</button>
+</div>
