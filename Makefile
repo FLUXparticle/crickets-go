@@ -1,11 +1,23 @@
-.PHONY: all build-backend build-frontend docker-build
-all: build-backend build-frontend docker-build
+FRONTEND_SRC=$(shell find frontend/src -type f)
+BACKEND_SRC=$(shell find backend -type f)
 
-build-backend:
-	cd backend && go build -o ../bin/backend main.go
+FRONTEND_DEST=dist/static/app/index.html
+BACKEND_DEST=dist/backend
 
-build-frontend:
+.PHONY: all backend frontend docker-container
+all: backend frontend
+
+.PHONY: clean
+clean:
+	rm -rfv dist/
+
+backend: $(BACKEND_DEST)
+$(BACKEND_DEST): $(BACKEND_SRC)
+	cd backend && go build -o ../$(BACKEND_DEST) main.go
+
+frontend: $(FRONTEND_DEST)
+$(FRONTEND_DEST): $(FRONTEND_SRC)
 	cd frontend && npm install && npm run build
 
-docker-build:
+docker-container:
 	docker build -t crickets:latest .
