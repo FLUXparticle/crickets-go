@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crickets-go/handler"
+	"crickets-go/service"
 	"log"
 	"net"
 	"net/http"
@@ -12,11 +14,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-const sessionCookieName = "session_token"
-
-// In-Memory-Storage für Sessions (in einer echten Anwendung sollte dies persistent sein)
-var sessions = map[string]string{}
 
 // NewLogger initialisiert den Standard-Logger von Go
 func NewLogger() *log.Logger {
@@ -46,59 +43,18 @@ func staticFileServer() gin.HandlerFunc {
 	}
 }
 
-func loginHandler(c *gin.Context) {
-	var loginData struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&loginData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login data"})
-		return
-	}
-
-	// Überprüfe Benutzername und Passwort (dies ist ein einfaches Beispiel, in einer echten Anwendung sollte dies sicherer sein)
-	if loginData.Username == "user" && loginData.Password == "pass" {
-		// Generiere ein Session-Token
-		sessionToken := "some-session-token" // Generiere hier ein echtes Token, z.B. UUID
-		sessions[sessionToken] = loginData.Username
-
-		// Setze den Session-Cookie
-		c.SetCookie(sessionCookieName, sessionToken, 3600, "/", "", false, true)
-		c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
-	} else {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-	}
-}
-
-func authMiddleware(c *gin.Context) {
-	sessionToken, err := c.Cookie(sessionCookieName)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		c.Abort()
-		return
-	}
-
-	if _, exists := sessions[sessionToken]; !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
-		c.Abort()
-		return
-	}
-
-	c.Next()
-}
-
-func NewGinHandler() http.Handler {
+func NewGinHandler(userHandler *handler.UserHandler) http.Handler {
 	// gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
 
 	r.Use(staticFileServer())
 
-	r.Use(authMiddleware)
+	r.Use(userHandler.Auth)
 
 	// API-Routes
 	api := r.Group("/api")
-	api.POST("/login", loginHandler)
+	api.POST("/login", userHandler.Login)
 
 	return r
 }
@@ -136,6 +92,8 @@ func main() {
 			NewHTTPServer,
 			NewGinHandler,
 			NewLogger,
+			handler.NewUserHandler,
+			service.NewUserService,
 		),
 		fx.Invoke(func(*http.Server) {}),
 	).Run()
