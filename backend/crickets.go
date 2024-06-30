@@ -18,6 +18,11 @@ const sessionCookieName = "session_token"
 // In-Memory-Storage für Sessions (in einer echten Anwendung sollte dies persistent sein)
 var sessions = map[string]string{}
 
+// NewLogger initialisiert den Standard-Logger von Go
+func NewLogger() *log.Logger {
+	return log.New(os.Stdout, "[Crickets] ", log.LstdFlags)
+}
+
 // Middleware für statische Dateien basierend auf dem Pfad
 func staticFileServer() gin.HandlerFunc {
 	appHandler := http.StripPrefix("/app", http.FileServer(http.Dir("./app")))
@@ -98,7 +103,7 @@ func NewGinHandler() http.Handler {
 	return r
 }
 
-func NewHTTPServer(lc fx.Lifecycle, handler http.Handler) *http.Server {
+func NewHTTPServer(lc fx.Lifecycle, logger *log.Logger, handler http.Handler) *http.Server {
 	// Einstellungen für die Server-Adresse über Umgebungsvariable
 	addr := ":8080"
 	if env, found := os.LookupEnv("ADDR"); found {
@@ -114,7 +119,7 @@ func NewHTTPServer(lc fx.Lifecycle, handler http.Handler) *http.Server {
 			if err != nil {
 				return err
 			}
-			log.Printf("Server on %s running...\n", addr)
+			logger.Printf("Server on %s running...", addr)
 			go srv.Serve(ln)
 			return nil
 		},
@@ -130,6 +135,7 @@ func main() {
 		fx.Provide(
 			NewHTTPServer,
 			NewGinHandler,
+			NewLogger,
 		),
 		fx.Invoke(func(*http.Server) {}),
 	).Run()
