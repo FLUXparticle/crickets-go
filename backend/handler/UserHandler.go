@@ -26,6 +26,11 @@ func (h *UserHandler) Auth(c *gin.Context) {
 	sessionToken, err := c.Cookie(sessionCookieName)
 
 	if strings.Contains(requestURI, "/app/") {
+		if strings.HasSuffix(requestURI, ".map") {
+			c.Next()
+			return
+		}
+
 		if err != nil || !h.userService.CheckSession(sessionToken) {
 			c.Redirect(http.StatusFound, "/")
 			c.Abort()

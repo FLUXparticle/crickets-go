@@ -59,7 +59,9 @@ func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.Pro
 	api.GET("/profile", profileHandler.Profile)
 	api.POST("/subscribe", profileHandler.Subscribe)
 
+	api.GET("/search", timelineHandler.Search)
 	api.POST("/post", timelineHandler.Post)
+	api.GET("/timeline", timelineHandler.Timeline)
 
 	return r
 }

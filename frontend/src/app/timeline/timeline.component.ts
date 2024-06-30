@@ -2,8 +2,9 @@ import {Component, NgZone, OnDestroy, OnInit} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 
 interface Post {
-    creator: { username: string };
+    username: string;
     content: string;
+    createdAt: string;
 }
 
 @Component({
@@ -14,19 +15,18 @@ interface Post {
 export class TimelineComponent implements OnInit, OnDestroy {
     username: string = 'Benutzername';
     newPostContent: string = '';
-    posts: Post[] = [];
+    timeline: Post[] = [];
     server: string = '';
     creatorName: string = '';
     searchQuery: string = '';
     searchResults: Post[] = [];
     private eventSource: EventSource | null = null;
-    private searchEventSource: EventSource | null = null;
 
     constructor(private http: HttpClient, private ngZone: NgZone) {
     }
 
     ngOnInit(): void {
-        this.subscribeToPosts();
+        // this.subscribeToPosts();
     }
 
     ngOnDestroy() {
@@ -37,12 +37,12 @@ export class TimelineComponent implements OnInit, OnDestroy {
 
     subscribeToPosts() {
         console.log("subscribeToPosts");
-        this.eventSource = new EventSource('/api/posts');
+        this.eventSource = new EventSource('/api/timeline');
         this.eventSource.onmessage = (event) => {
             console.log(event);
             this.ngZone.run(() => {
                 const post = JSON.parse(event.data);
-                this.posts.push(post);
+                this.timeline.push(post);
             });
         };
     }
@@ -57,23 +57,19 @@ export class TimelineComponent implements OnInit, OnDestroy {
     }
 
     searchPosts(): void {
-        if (this.searchQuery.trim() !== '') {
-            if (this.searchEventSource) {
-                this.searchEventSource.close();
-            }
+        let query = this.searchQuery.trim()
+        if (query !== '') {
             this.searchResults = [];
-            this.searchEventSource = new EventSource(`/api/search?query=${this.searchQuery}`);
-            this.searchEventSource.onmessage = (event) => {
-                this.ngZone.run(() => {
-                    const post = JSON.parse(event.data);
-                    this.searchResults.push(post);
-                });
-            };
-            this.searchEventSource.onerror = (event) => {
-                console.log("Error!")
-                this.searchEventSource?.close();
-                this.searchEventSource = null;
-            };
+            this.http.get<Post[]>(`/api/search?q=${query}`).subscribe({
+                next: (results) => {
+                    // this.ngZone.run(() => {
+                        this.searchResults = results;
+                    // });
+                },
+                error: (err) => {
+                    console.log('Error!', err);
+                }
+            });
         }
     }
 
