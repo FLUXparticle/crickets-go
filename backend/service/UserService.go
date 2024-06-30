@@ -48,6 +48,10 @@ func (s *UserService) Login(username, password string) (string, error) {
 	return "", errors.New("invalid credentials")
 }
 
+func (s *UserService) Username(sessionToken string) string {
+	return s.sessions[sessionToken]
+}
+
 func (s *UserService) generateSessionToken() (string, error) {
 	token := make([]byte, 4)
 	_, err := rand.Read(token)

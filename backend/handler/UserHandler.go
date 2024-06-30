@@ -4,9 +4,10 @@ import (
 	"crickets-go/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strings"
 )
 
-const sessionCookieName = "session_token"
+const sessionCookieName = "sessionToken"
 
 type UserHandler struct {
 	userService *service.UserService
@@ -19,23 +20,38 @@ func NewUserHandler(service *service.UserService) *UserHandler {
 }
 
 func (h *UserHandler) Auth(c *gin.Context) {
-	if c.Request.RequestURI == "/api/login" {
-		c.Next()
-		return
-	}
+	requestURI := c.Request.RequestURI
 
 	sessionToken, err := c.Cookie(sessionCookieName)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		c.Abort()
-		return
+
+	if strings.Contains(requestURI, "/app/") {
+		if err != nil || !h.userService.CheckSession(sessionToken) {
+			c.Redirect(http.StatusFound, "/")
+			c.Abort()
+			return
+		}
 	}
 
-	if !h.userService.CheckSession(sessionToken) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
-		c.Abort()
-		return
+	if strings.Contains(requestURI, "/api/") {
+		if requestURI == "/api/login" {
+			c.Next()
+			return
+		}
+
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		if !h.userService.CheckSession(sessionToken) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+			c.Abort()
+			return
+		}
 	}
+
+	c.Set(sessionCookieName, sessionToken)
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
@@ -57,4 +73,10 @@ func (h *UserHandler) Login(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 	}
+}
+
+func (h *UserHandler) Username(c *gin.Context) {
+	sessionToken := c.GetString(sessionCookieName)
+	username := h.userService.Username(sessionToken)
+	c.JSON(http.StatusOK, gin.H{"username": username})
 }

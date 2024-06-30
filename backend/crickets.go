@@ -48,13 +48,14 @@ func NewGinHandler(userHandler *handler.UserHandler) http.Handler {
 
 	r := gin.Default()
 
-	r.Use(staticFileServer())
-
 	r.Use(userHandler.Auth)
+
+	r.Use(staticFileServer())
 
 	// API-Routes
 	api := r.Group("/api")
 	api.POST("/login", userHandler.Login)
+	api.GET("/username", userHandler.Username)
 
 	return r
 }

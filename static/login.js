@@ -4,7 +4,7 @@ async function login() {
     const json = JSON.stringify(Object.fromEntries(formData.entries()));
     const errorMessage = document.getElementById('error-message');
 
-    const response = await fetch('/login', {
+    const response = await fetch('/api/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
