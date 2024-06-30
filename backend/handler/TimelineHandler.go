@@ -3,7 +3,9 @@ package handler
 import (
 	"crickets-go/repository"
 	"crickets-go/service"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
 )
 
@@ -47,7 +49,19 @@ func (h *TimelineHandler) Post(c *gin.Context) {
 
 func (h *TimelineHandler) Timeline(c *gin.Context) {
 	subscriber := h.userHandler.getUser(c)
-	h.timelineService.Timeline(subscriber)
+
+	updates := h.timelineService.TimelineUpdates(subscriber)
+
+	c.Stream(func(w io.Writer) bool {
+		select {
+		case post := <-updates:
+			fmt.Println("Received:", post.Content)
+			c.SSEvent("", displayPost(post))
+			return true
+		case <-c.Writer.CloseNotify():
+			return false
+		}
+	})
 }
 
 func displayPost(post *repository.Post) map[string]any {

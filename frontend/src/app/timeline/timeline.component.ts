@@ -26,7 +26,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        // this.subscribeToPosts();
+        this.subscribeToTimeline();
     }
 
     ngOnDestroy() {
@@ -35,8 +35,8 @@ export class TimelineComponent implements OnInit, OnDestroy {
         }
     }
 
-    subscribeToPosts() {
-        console.log("subscribeToPosts");
+    subscribeToTimeline() {
+        console.log("subscribeToTimeline");
         this.eventSource = new EventSource('/api/timeline');
         this.eventSource.onmessage = (event) => {
             console.log(event);

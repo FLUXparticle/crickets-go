@@ -23,6 +23,18 @@ func (r *SubscriptionRepository) FindByCreatorID(creatorID int) []*Subscription 
 	return result
 }
 
+func (r *SubscriptionRepository) FindBySubscriberID(subscriberID int) []*Subscription {
+	result := make([]*Subscription, 0)
+
+	for _, sub := range r.subscriptions {
+		if sub.Subscriber.ID == subscriberID {
+			result = append(result, sub)
+		}
+	}
+
+	return result
+}
+
 func (r *SubscriptionRepository) Save(subscription *Subscription) {
 	r.subscriptions = append(r.subscriptions, subscription)
 }
