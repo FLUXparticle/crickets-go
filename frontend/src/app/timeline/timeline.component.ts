@@ -1,5 +1,5 @@
-import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import {Component, NgZone, OnDestroy, OnInit} from '@angular/core';
+import {HttpClient} from '@angular/common/http';
 
 interface Post {
     creator: { username: string };
@@ -26,9 +26,6 @@ export class TimelineComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.http.get<{ username: string }>('/api/username').subscribe(response => {
-            this.username = response.username;
-        });
         this.subscribeToPosts();
     }
 
@@ -51,8 +48,9 @@ export class TimelineComponent implements OnInit, OnDestroy {
     }
 
     createPost(): void {
-        if (this.newPostContent.trim() !== '') {
-            this.http.post('/api/post', { content: this.newPostContent }).subscribe(() => {
+        let content = this.newPostContent.trim();
+        if (content !== '') {
+            this.http.post('/api/post', { content: content }).subscribe(() => {
                 this.newPostContent = '';
             });
         }

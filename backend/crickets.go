@@ -28,23 +28,21 @@ func staticFileServer() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestURI := c.Request.RequestURI
 
-		var handler http.Handler
+		var useHandler http.Handler
 		if strings.HasPrefix(requestURI, "/app/") {
-			handler = appHandler
+			useHandler = appHandler
 		} else if !strings.HasPrefix(requestURI, "/api/") {
-			handler = staticHandler
+			useHandler = staticHandler
 		}
 
-		if handler != nil {
-			handler.ServeHTTP(c.Writer, c.Request)
+		if useHandler != nil {
+			useHandler.ServeHTTP(c.Writer, c.Request)
 			c.Abort()
-		} else {
-			c.Next()
 		}
 	}
 }
 
-func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler) http.Handler {
+func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler, timelineHandler *handler.TimelineHandler) http.Handler {
 	// gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
@@ -60,6 +58,8 @@ func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.Pro
 
 	api.GET("/profile", profileHandler.Profile)
 	api.POST("/subscribe", profileHandler.Subscribe)
+
+	api.POST("/post", timelineHandler.Post)
 
 	return r
 }
@@ -99,10 +99,13 @@ func main() {
 			NewLogger,
 			handler.NewUserHandler,
 			handler.NewProfileHandler,
+			handler.NewTimelineHandler,
 			service.NewUserService,
 			service.NewProfileService,
+			service.NewTimelineService,
 			repository.NewUserRepository,
 			repository.NewSubscriptionRepository,
+			repository.NewPostRepository,
 		),
 		fx.Invoke(func(*http.Server) {}),
 	).Run()
