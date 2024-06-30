@@ -1,6 +1,7 @@
 package service
 
 import (
+	"crickets-go/repository"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -8,24 +9,18 @@ import (
 )
 
 type UserService struct {
-	logger *log.Logger
+	logger         *log.Logger
+	userRepository *repository.UserRepository
 
-	// User-Tabelle (in einer echten Anwendung sollten diese aus einer Datenbank oder z.B. LDAP kommen)
-	users map[string]string
 	// In-Memory-Storage für Sessions (in einer echten Anwendung sollte dies persistent sein)
-	sessions map[string]string
+	sessions map[string]*repository.User
 }
 
-func NewUserService(logger *log.Logger) *UserService {
+func NewUserService(logger *log.Logger, userRepository *repository.UserRepository) *UserService {
 	return &UserService{
-		logger: logger,
-		users: map[string]string{
-			"admin":    "Secret123",
-			"helpdesk": "Secret123",
-			"employee": "Secret123",
-			"manager":  "Secret123",
-		},
-		sessions: make(map[string]string),
+		logger:         logger,
+		userRepository: userRepository,
+		sessions:       make(map[string]*repository.User),
 	}
 }
 
@@ -35,20 +30,21 @@ func (s *UserService) CheckSession(sessionToken string) bool {
 }
 
 func (s *UserService) Login(username, password string) (string, error) {
-	if foundPassword, found := s.users[username]; found {
-		if foundPassword == password {
+	if user := s.userRepository.FindByUsername(username); user != nil {
+		if user.Password == password {
 			sessionToken, err := s.generateSessionToken()
 			if err != nil {
 				return "", err
 			}
-			s.sessions[sessionToken] = username
+			s.sessions[sessionToken] = user
 			return sessionToken, nil
 		}
 	}
+
 	return "", errors.New("invalid credentials")
 }
 
-func (s *UserService) Username(sessionToken string) string {
+func (s *UserService) User(sessionToken string) *repository.User {
 	return s.sessions[sessionToken]
 }
 

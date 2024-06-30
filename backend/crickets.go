@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crickets-go/handler"
+	"crickets-go/repository"
 	"crickets-go/service"
 	"log"
 	"net"
@@ -43,7 +44,7 @@ func staticFileServer() gin.HandlerFunc {
 	}
 }
 
-func NewGinHandler(userHandler *handler.UserHandler) http.Handler {
+func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler) http.Handler {
 	// gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
@@ -56,6 +57,9 @@ func NewGinHandler(userHandler *handler.UserHandler) http.Handler {
 	api := r.Group("/api")
 	api.POST("/login", userHandler.Login)
 	api.GET("/username", userHandler.Username)
+
+	api.GET("/profile", profileHandler.Profile)
+	api.POST("/subscribe", profileHandler.Subscribe)
 
 	return r
 }
@@ -94,7 +98,11 @@ func main() {
 			NewGinHandler,
 			NewLogger,
 			handler.NewUserHandler,
+			handler.NewProfileHandler,
 			service.NewUserService,
+			service.NewProfileService,
+			repository.NewUserRepository,
+			repository.NewSubscriptionRepository,
 		),
 		fx.Invoke(func(*http.Server) {}),
 	).Run()
