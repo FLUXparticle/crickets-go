@@ -4,6 +4,6 @@ import "time"
 
 type Post struct {
 	Creator   *User
-	Content   string
+	Content   string `json:"content"`
 	CreatedAt time.Time
 }

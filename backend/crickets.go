@@ -42,7 +42,7 @@ func staticFileServer() gin.HandlerFunc {
 	}
 }
 
-func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler, timelineHandler *handler.TimelineHandler) http.Handler {
+func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler, timelineHandler *handler.TimelineHandler, chatHandler *handler.ChatHandler) http.Handler {
 	// gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
@@ -62,6 +62,8 @@ func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.Pro
 	api.GET("/search", timelineHandler.Search)
 	api.POST("/post", timelineHandler.Post)
 	api.GET("/timeline", timelineHandler.Timeline)
+
+	api.GET("/chatWS", chatHandler.ChatWebSocket)
 
 	return r
 }
@@ -99,12 +101,18 @@ func main() {
 			NewHTTPServer,
 			NewGinHandler,
 			NewLogger,
+
 			handler.NewUserHandler,
 			handler.NewProfileHandler,
 			handler.NewTimelineHandler,
+			handler.NewChatHandler,
+
 			service.NewUserService,
 			service.NewProfileService,
 			service.NewTimelineService,
+			service.NewChatService,
+			service.NewPubSub,
+
 			repository.NewUserRepository,
 			repository.NewSubscriptionRepository,
 			repository.NewPostRepository,

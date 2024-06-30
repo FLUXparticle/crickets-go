@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { ChatService } from './chat.service';
+import {Component, OnInit} from '@angular/core';
+import {ChatService, Post} from './chat.service';
 
 @Component({
   selector: 'app-chat',
@@ -8,18 +8,14 @@ import { ChatService } from './chat.service';
 })
 export class ChatComponent implements OnInit {
   newMessage: string = '';
-  messages: string[] = [];
+  messages: Post[] = [];
 
   constructor(private chatService: ChatService) { }
 
   ngOnInit(): void {
-    this.chatService.messages$.subscribe((messages: string[]) => {
+    this.chatService.messages$.subscribe((messages: Post[]) => {
       this.messages = messages;
     });
-  }
-
-  sendPartialMessage() {
-    this.chatService.sendPartialMessage(this.newMessage);
   }
 
   sendMessage() {

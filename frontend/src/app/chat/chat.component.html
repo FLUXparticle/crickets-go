@@ -1,14 +1,16 @@
 <h1>Chat</h1>
-<ul>
-    <ng-container *ngFor="let message of messages">
-        <li *ngIf="message">{{ message }}</li>
-    </ng-container>
-</ul>
+<div class="messages">
+    <div *ngFor="let message of messages" class="message">
+        <span class="username">{{ message.username }}</span>
+        <span class="content">{{ message.content }}</span>
+        <span class="timestamp">{{ message.createdAt | date:'shortTime' }}</span>
+    </div>
+</div>
 
 <hr>
 
 <div>
     <h2>Neue Nachricht</h2>
-    <input type="text" [(ngModel)]="newMessage" (input)="sendPartialMessage()" (keydown.enter)="sendMessage()" placeholder="Text"/>
+    <input type="text" [(ngModel)]="newMessage" (keydown.enter)="sendMessage()" placeholder="Text"/>
     <button (click)="sendMessage()">Senden</button>
 </div>

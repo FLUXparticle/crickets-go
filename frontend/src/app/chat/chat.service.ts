@@ -1,48 +1,51 @@
-import { Injectable } from '@angular/core';
-import { Client, Message } from '@stomp/stompjs';
-import { Observable, Subject } from 'rxjs';
+import {Injectable, NgZone} from '@angular/core';
+import {Observable, Subject} from 'rxjs';
+
+export interface Post {
+    username: string;
+    content: string;
+    createdAt: string;
+}
 
 @Injectable({
     providedIn: 'root'
 })
 export class ChatService {
-    private stompClient: Client;
-    private messages: string[] = [];
-    private messagesSubject: Subject<string[]> = new Subject<string[]>();
-    public messages$: Observable<string[]> = this.messagesSubject.asObservable();
+    private ws: WebSocket;
+    private messages: Post[] = [];
+    private messagesSubject: Subject<Post[]> = new Subject<Post[]>();
+    public messages$: Observable<Post[]> = this.messagesSubject.asObservable();
 
-    constructor() {
+    constructor(private ngZone: NgZone) {
         // Den WebSocket-Pfad konstruieren, der relativ zur aktuellen URL ist
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.hostname;
         const port = window.location.port ? ':' + window.location.port : '';
 
-        this.stompClient = new Client({
-            brokerURL: `${protocol}//${host}${port}/ws`,
-            reconnectDelay: 5000,
-            debug: (str: string) => {
-                console.log(str);
-            }
-        });
-        this.stompClient.onConnect = () => {
-            this.stompClient.subscribe('/topic/messages', (message: Message) => {
-                const lineUpdate = JSON.parse(message.body);
-                const line = lineUpdate.line;
-                const textMessage = lineUpdate.message;
+        this.ws = new WebSocket(`${protocol}//${host}${port}/api/chatWS`);
 
-                this.messages[line] = textMessage;
-
+        this.ws.onmessage = (event) => {
+            this.ngZone.run(() => {
+                const message = JSON.parse(event.data);
+                this.messages.push(message);
                 this.messagesSubject.next(this.messages);
             });
         };
-        this.stompClient.activate();
-    }
 
-    sendPartialMessage(message: string) {
-        this.stompClient.publish({ destination: '/app/send-partial-message', body: message });
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        this.ws.onclose = () => {
+            console.log('WebSocket connection closed');
+        };
     }
 
     sendMessage(message: string) {
-        this.stompClient.publish({ destination: '/app/send-message', body: message });
+        if (this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ content: message }));
+        } else {
+            console.error('WebSocket is not open');
+        }
     }
 }

@@ -1,0 +1,25 @@
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 10px;
+}
+.message {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+}
+.username {
+    font-weight: bold;
+    flex: 1;
+}
+.content {
+    flex: 2;
+    text-align: left;
+    padding: 0 10px;
+}
+.timestamp {
+    flex: 1;
+    text-align: right;
+    color: #aaa;
+}

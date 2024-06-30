@@ -3,23 +3,20 @@ package service
 import (
 	"crickets-go/repository"
 	"fmt"
-	"sync"
 	"time"
 )
 
 type TimelineService struct {
 	postRepository         *repository.PostRepository
 	subscriptionRepository *repository.SubscriptionRepository
-
-	channelsMap map[int][]chan *repository.Post
-	mu          sync.RWMutex
+	pubSub                 *PubSub
 }
 
-func NewTimelineService(postRepository *repository.PostRepository, subscriptionRepository *repository.SubscriptionRepository) *TimelineService {
+func NewTimelineService(postRepository *repository.PostRepository, subscriptionRepository *repository.SubscriptionRepository, pubSub *PubSub) *TimelineService {
 	return &TimelineService{
 		postRepository:         postRepository,
 		subscriptionRepository: subscriptionRepository,
-		channelsMap:            make(map[int][]chan *repository.Post),
+		pubSub:                 pubSub,
 	}
 }
 
@@ -31,19 +28,15 @@ func (s *TimelineService) TimelineUpdates(subscriber *repository.User) chan *rep
 		creators[i] = sub.Creator
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	aggregator := make(chan *repository.Post)
 
 	for _, creator := range creators {
-		ch := make(chan *repository.Post)
+		ch := s.pubSub.Subscribe(userID(creator))
 		go func() {
 			for post := range ch {
 				aggregator <- post
 			}
 		}()
-		s.channelsMap[creator.ID] = append(s.channelsMap[creator.ID], ch)
 	}
 
 	return aggregator
@@ -57,17 +50,13 @@ func (s *TimelineService) Post(creator *repository.User, content string) {
 	}
 
 	s.postRepository.Save(post)
-
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if channels, found := s.channelsMap[creator.ID]; found {
-		for _, ch := range channels {
-			fmt.Println("Sending:", post.Content)
-			ch <- post
-		}
-	}
+	s.pubSub.Publish(userID(creator), post)
 }
 
 func (s *TimelineService) Search(query string) []*repository.Post {
 	return s.postRepository.FindByContentContains(query)
+}
+
+func userID(user *repository.User) string {
+	return fmt.Sprintf("creator%d", user.ID)
 }
