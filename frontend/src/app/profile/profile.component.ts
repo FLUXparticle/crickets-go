@@ -39,7 +39,6 @@ export class ProfileComponent implements OnInit {
                 next: (data) => {
                     this.successes = data.successes || [];
                     this.errors = data.errors || [];
-                    this.getProfile(); // Refresh subscriber count after subscribing
                 },
                 error: (err) => {
                     console.error('Error subscribing:', err);

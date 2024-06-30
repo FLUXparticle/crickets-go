@@ -56,17 +56,17 @@ func (h *UserHandler) Auth(c *gin.Context) {
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
-	var loginData struct {
+	var data struct {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&loginData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid login data"})
+	if err := c.ShouldBindJSON(&data); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Überprüfe Benutzername und Passwort
-	sessionToken, err := h.userService.Login(loginData.Username, loginData.Password)
+	sessionToken, err := h.userService.Login(data.Username, data.Password)
 	if err == nil {
 		// Setze den Session-Cookie
 		c.SetCookie(sessionCookieName, sessionToken, 3600, "/", "", false, true)

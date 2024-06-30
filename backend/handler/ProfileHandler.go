@@ -25,5 +25,20 @@ func (h *ProfileHandler) Profile(c *gin.Context) {
 }
 
 func (h *ProfileHandler) Subscribe(c *gin.Context) {
+	var data struct {
+		Server      string `json:"server"`
+		CreatorName string `json:"creatorName" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&data); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
+	subscriber := h.userHandler.getUser(c)
+	success, err := h.profileService.Subscribe(subscriber, data.Server, data.CreatorName)
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{"successes": []string{success}})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"errors": []string{err.Error()}})
+	}
 }
