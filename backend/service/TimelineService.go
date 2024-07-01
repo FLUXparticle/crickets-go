@@ -1,8 +1,13 @@
 package service
 
 import (
+	"context"
+	"crickets-go/gen/timeline"
 	"crickets-go/repository"
 	"fmt"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"time"
 )
 
@@ -53,8 +58,45 @@ func (s *TimelineService) Post(creator *repository.User, content string) {
 	s.pubSub.Publish(userID(creator), post)
 }
 
-func (s *TimelineService) Search(query string) []*repository.Post {
-	return s.postRepository.FindByContentContains(query)
+func (s *TimelineService) Search(server string, query string) []*repository.Post {
+	if len(server) == 0 {
+		return s.postRepository.FindByContentContains(query)
+	} else {
+		// Erstelle eine gRPC-Verbindung zum entfernten Server
+		conn, err := grpc.NewClient("dns:"+server+":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("did not connect: %v", err)
+		}
+		defer conn.Close()
+
+		client := timeline.NewTimelineServiceClient(conn)
+
+		// Erstelle einen Kontext mit Timeout
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		// Führe die gRPC-Suche durch
+		resp, err := client.Search(ctx, &timeline.SearchRequest{Query: query})
+		if err != nil {
+			log.Fatalf("could not search: %v", err)
+		}
+
+		// Konvertiere die Antwort in das interne Format
+		posts := make([]*repository.Post, len(resp.Posts))
+		for idx, post := range resp.Posts {
+			// TODO Fehlerbehandlung
+			parsedTime, _ := time.Parse(time.RFC3339, post.CreatedAt)
+			posts[idx] = &repository.Post{
+				Creator: &repository.User{
+					Username: post.Username,
+					Server:   server,
+				},
+				Content:   post.Content,
+				CreatedAt: parsedTime,
+			}
+		}
+		return posts
+	}
 }
 
 func userID(user *repository.User) string {

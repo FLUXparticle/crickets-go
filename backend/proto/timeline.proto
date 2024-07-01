@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package timeline;
+
+option go_package = "gen/timeline";
+
+service TimelineService {
+  rpc Search (SearchRequest) returns (SearchResponse);
+}
+
+message SearchRequest {
+  string query = 1;
+}
+
+message SearchResponse {
+  repeated Post posts = 1;
+}
+
+message Post {
+  string username = 1;
+  string content = 2;
+  string createdAt = 3;
+}

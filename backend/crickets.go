@@ -1,7 +1,9 @@
+//go:generate protoc --go_out=. --go-grpc_out=. --proto_path=proto proto/timeline.proto
 package main
 
 import (
 	"context"
+	"crickets-go/gen/timeline"
 	"crickets-go/handler"
 	"crickets-go/repository"
 	"crickets-go/service"
@@ -10,8 +12,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
 
 	"github.com/gin-gonic/gin"
 )
@@ -78,12 +82,11 @@ func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.Pro
 	return r
 }
 
+// NewHTTPServer initialisiert und startet den HTTP-Server (Gin)
 func NewHTTPServer(lc fx.Lifecycle, logger *log.Logger, handler http.Handler) *http.Server {
 	// Einstellungen für die Server-Adresse über Umgebungsvariable
-	addr := ":8080"
-	if env, found := os.LookupEnv("ADDR"); found {
-		addr = env
-	}
+	localhost := os.Getenv("LOCALHOST")
+	addr := localhost + ":8080"
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: handler,
@@ -94,7 +97,7 @@ func NewHTTPServer(lc fx.Lifecycle, logger *log.Logger, handler http.Handler) *h
 			if err != nil {
 				return err
 			}
-			logger.Printf("Server on %s running...", addr)
+			logger.Printf("HTTP server on %s running...", addr)
 			go srv.Serve(ln)
 			return nil
 		},
@@ -105,10 +108,54 @@ func NewHTTPServer(lc fx.Lifecycle, logger *log.Logger, handler http.Handler) *h
 	return srv
 }
 
+type server struct {
+	timeline.UnimplementedTimelineServiceServer
+	timelineService *service.TimelineService
+}
+
+func (s *server) Search(ctx context.Context, req *timeline.SearchRequest) (*timeline.SearchResponse, error) {
+	posts := s.timelineService.Search("", req.Query)
+	responsePosts := make([]*timeline.Post, len(posts))
+	for i, post := range posts {
+		responsePosts[i] = &timeline.Post{
+			Username:  post.Creator.Username,
+			Content:   post.Content,
+			CreatedAt: post.CreatedAt.Format(time.RFC3339),
+		}
+	}
+	return &timeline.SearchResponse{Posts: responsePosts}, nil
+}
+
+// NewGRPCServer initialisiert und startet den gRPC-Server
+func NewGRPCServer(lc fx.Lifecycle, logger *log.Logger, timelineService *service.TimelineService) *grpc.Server {
+	localhost := os.Getenv("LOCALHOST")
+	addr := localhost + ":50051"
+	grpcServer := grpc.NewServer()
+	timeline.RegisterTimelineServiceServer(grpcServer, &server{timelineService: timelineService})
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			ln, err := net.Listen("tcp", addr)
+			if err != nil {
+				return err
+			}
+			logger.Printf("gRPC server on %s running...", addr)
+			go grpcServer.Serve(ln)
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			grpcServer.GracefulStop()
+			return nil
+		},
+	})
+	return grpcServer
+}
+
 func main() {
 	fx.New(
 		fx.Provide(
 			NewHTTPServer,
+			NewGRPCServer,
 			NewGinHandler,
 			NewLogger,
 
@@ -129,6 +176,6 @@ func main() {
 			repository.NewSubscriptionRepository,
 			repository.NewPostRepository,
 		),
-		fx.Invoke(func(*http.Server) {}),
+		fx.Invoke(func(*http.Server, *grpc.Server) {}),
 	).Run()
 }
