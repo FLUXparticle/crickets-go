@@ -8,6 +8,12 @@ import (
 	"log"
 )
 
+var validAPIKeys = map[string]bool{
+	"fi4thee4kieyahhei3Chahth3iek6eib": true,
+	"eeGix6Ooceew4booVeele6VeeTa1ahWu": true,
+	"Ue4Aeghei4hagei1Tai4axoothooJam3": true,
+}
+
 type UserService struct {
 	logger         *log.Logger
 	userRepository *repository.UserRepository
@@ -24,9 +30,14 @@ func NewUserService(logger *log.Logger, userRepository *repository.UserRepositor
 	}
 }
 
+func (s *UserService) CheckApiKey(apiKey string) bool {
+	valid, exists := validAPIKeys[apiKey]
+	return exists && valid
+}
+
 func (s *UserService) CheckSession(sessionToken string) bool {
-	_, valid := s.sessions[sessionToken]
-	return valid
+	_, exists := s.sessions[sessionToken]
+	return exists
 }
 
 func (s *UserService) Login(username, password string) (string, error) {

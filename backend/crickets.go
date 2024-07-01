@@ -42,7 +42,7 @@ func staticFileServer() gin.HandlerFunc {
 	}
 }
 
-func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler, timelineHandler *handler.TimelineHandler, chatHandler *handler.ChatHandler) http.Handler {
+func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler, timelineHandler *handler.TimelineHandler, chatHandler *handler.ChatHandler, serverHandler *handler.ServerHandler) http.Handler {
 	// gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
@@ -52,18 +52,28 @@ func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.Pro
 	r.Use(staticFileServer())
 
 	// API-Routes
-	api := r.Group("/api")
-	api.POST("/login", userHandler.Login)
-	api.GET("/username", userHandler.Username)
+	{
+		api := r.Group("/api")
 
-	api.GET("/profile", profileHandler.Profile)
-	api.POST("/subscribe", profileHandler.Subscribe)
+		api.POST("/login", userHandler.Login)
+		api.GET("/username", userHandler.Username)
 
-	api.GET("/search", timelineHandler.Search)
-	api.POST("/post", timelineHandler.Post)
-	api.GET("/timeline", timelineHandler.Timeline)
+		api.GET("/profile", profileHandler.Profile)
+		api.POST("/subscribe", profileHandler.Subscribe)
 
-	api.GET("/chatWS", chatHandler.ChatWebSocket)
+		api.GET("/search", timelineHandler.Search)
+		api.POST("/post", timelineHandler.Post)
+		api.GET("/timeline", timelineHandler.Timeline)
+
+		api.GET("/chatWS", chatHandler.ChatWebSocket)
+
+		// Internal-Routes
+		{
+			internal := api.Group("/internal")
+
+			internal.POST("/subscribe", serverHandler.Subscribe)
+		}
+	}
 
 	return r
 }
@@ -106,6 +116,7 @@ func main() {
 			handler.NewProfileHandler,
 			handler.NewTimelineHandler,
 			handler.NewChatHandler,
+			handler.NewServerHandler,
 
 			service.NewUserService,
 			service.NewProfileService,

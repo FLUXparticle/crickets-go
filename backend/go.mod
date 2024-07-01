@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-resty/resty/v2 v2.13.1
 	github.com/gorilla/websocket v1.5.3
 	go.uber.org/fx v1.22.1
 )

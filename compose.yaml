@@ -12,6 +12,7 @@ services:
     image: crickets:latest
     environment:
       - AMQP_HOST=r1
+      - API_KEY=fi4thee4kieyahhei3Chahth3iek6eib
     depends_on:
       - rabbitmq
     ports:
@@ -22,6 +23,7 @@ services:
     image: crickets:latest
     environment:
       - AMQP_HOST=r1
+      - API_KEY=eeGix6Ooceew4booVeele6VeeTa1ahWu
     depends_on:
       - rabbitmq
     ports:
@@ -32,6 +34,7 @@ services:
     image: crickets:latest
     environment:
       - AMQP_HOST=r1
+      - API_KEY=Ue4Aeghei4hagei1Tai4axoothooJam3
     depends_on:
       - rabbitmq
     ports:

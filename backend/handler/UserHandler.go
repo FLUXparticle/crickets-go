@@ -23,8 +23,23 @@ func NewUserHandler(service *service.UserService) *UserHandler {
 func (h *UserHandler) Auth(c *gin.Context) {
 	requestURI := c.Request.RequestURI
 
+	// API-Key für interne Nutzung prüfen
+	if strings.Contains(requestURI, "/api/internal/") {
+		apiKey := c.GetHeader("X-API-KEY")
+		if !h.userService.CheckApiKey(apiKey) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+		return
+	}
+
+	// Cookie für externe Nutzung überprüfen
 	sessionToken, err := c.Cookie(sessionCookieName)
 
+	// Ungültige Zugriffe auf die Homepage werden umgeleitet
 	if strings.Contains(requestURI, "/app/") {
 		if strings.HasSuffix(requestURI, ".map") {
 			c.Next()
@@ -38,6 +53,7 @@ func (h *UserHandler) Auth(c *gin.Context) {
 		}
 	}
 
+	// Ungültige Zugriffe auf die API werden abgelehnt
 	if strings.Contains(requestURI, "/api/") {
 		if requestURI == "/api/login" {
 			c.Next()
