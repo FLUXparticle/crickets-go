@@ -123,6 +123,7 @@ func main() {
 			service.NewTimelineService,
 			service.NewChatService,
 			service.NewPubSub,
+			service.NewRabbitConnection,
 
 			repository.NewUserRepository,
 			repository.NewSubscriptionRepository,

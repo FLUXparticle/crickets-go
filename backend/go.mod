@@ -6,6 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-resty/resty/v2 v2.13.1
 	github.com/gorilla/websocket v1.5.3
+	github.com/streadway/amqp v1.1.0
 	go.uber.org/fx v1.22.1
 )
 
