@@ -39,7 +39,7 @@ func (ps *PubSub) Unsubscribe(topic string, ch chan *repository.Post) {
 	}
 }
 
-func (ps *PubSub) Publish(topic string, post *repository.Post) {
+func (ps *PubSub) Publish(topic string, post *repository.Post) error {
 	ps.mu.RLock()
 	defer ps.mu.RUnlock()
 
@@ -48,4 +48,5 @@ func (ps *PubSub) Publish(topic string, post *repository.Post) {
 			ch <- post
 		}
 	}
+	return nil
 }

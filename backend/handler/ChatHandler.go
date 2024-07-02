@@ -15,12 +15,14 @@ var upgrader = websocket.Upgrader{
 }
 
 type ChatHandler struct {
+	logger      *log.Logger
 	userHandler *UserHandler
 	chatService *service.ChatService
 }
 
-func NewChatHandler(userHandler *UserHandler, chatService *service.ChatService) *ChatHandler {
+func NewChatHandler(logger *log.Logger, userHandler *UserHandler, chatService *service.ChatService) *ChatHandler {
 	return &ChatHandler{
+		logger:      logger,
 		userHandler: userHandler,
 		chatService: chatService,
 	}
@@ -67,6 +69,8 @@ func (h *ChatHandler) ChatWebSocket(c *gin.Context) {
 		}
 
 		// Post the chat message
-		h.chatService.SendChatMessage(post)
+		if err := h.chatService.SendChatMessage(post); err != nil {
+			h.logger.Println("Failed to send message:", err)
+		}
 	}
 }
