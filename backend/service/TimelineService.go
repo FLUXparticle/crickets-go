@@ -32,6 +32,10 @@ func (s *TimelineService) TimelineUpdates(subscriberID int32) chan *data.Post {
 	subscriptions := s.subscriptionRepository.FindBySubscriberServerAndSubscriberID("", subscriberID)
 
 	creatorIDsMap := make(map[string][]int32)
+
+	// Eigene Posts automatisch sehen
+	creatorIDsMap[""] = append(creatorIDsMap[""], subscriberID)
+
 	for _, sub := range subscriptions {
 		creator := sub.Creator
 		creatorServer := creator.Server
