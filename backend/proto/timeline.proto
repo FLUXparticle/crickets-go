@@ -2,10 +2,13 @@ syntax = "proto3";
 
 package timeline;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "gen/timeline";
 
 service TimelineService {
   rpc Search (SearchRequest) returns (SearchResponse);
+  rpc TimelineUpdates(TimelineUpdateRequest) returns (stream TimelineUpdateResponse);
 }
 
 message SearchRequest {
@@ -16,8 +19,16 @@ message SearchResponse {
   repeated Post posts = 1;
 }
 
+message TimelineUpdateRequest {
+  repeated int32 creator_ids = 1;
+}
+
+message TimelineUpdateResponse {
+  Post post = 1;
+}
+
 message Post {
   string username = 1;
   string content = 2;
-  string createdAt = 3;
+  google.protobuf.Timestamp createdAt = 3;
 }

@@ -37,8 +37,8 @@ func (h *ProfileHandler) Subscribe(c *gin.Context) {
 	subscriber := h.userHandler.getUser(c)
 	success, err := h.profileService.Subscribe(subscriber, data.Server, data.CreatorName)
 	if err == nil {
-		c.JSON(http.StatusOK, gin.H{"successes": []string{success}})
+		c.JSON(http.StatusOK, gin.H{"success": success})
 	} else {
-		c.JSON(http.StatusOK, gin.H{"errors": []string{err.Error()}})
+		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
 	}
 }

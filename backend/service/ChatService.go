@@ -14,21 +14,25 @@ type ChatService struct {
 }
 
 func NewRabbitConnection() *amqp.Connection {
-	conn, _ := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	// TODO Hostname aus Variable AMQP_HOST
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	if err != nil {
+		// TODO panic(err)
+		return nil
+	}
 	return conn
 }
 
 func NewChatService(pubSub *PubSub, rabbitMQConn *amqp.Connection) *ChatService {
-	rabbitMQChannel, err := rabbitMQConn.Channel()
-	if err != nil {
-		// Handle error
-		panic(err)
-	}
+	// TODO rabbitMQChannel, err := rabbitMQConn.Channel()
+	//if err != nil {
+	// TODO panic(err)
+	//}
 
 	return &ChatService{
-		pubSub:          pubSub,
-		rabbitMQConn:    rabbitMQConn,
-		rabbitMQChannel: rabbitMQChannel,
+		pubSub:       pubSub,
+		rabbitMQConn: rabbitMQConn,
+		// TODO rabbitMQChannel: rabbitMQChannel,
 	}
 }
 
@@ -57,7 +61,7 @@ func (s *ChatService) ChatUpdates() chan *repository.Post {
 				continue
 			}
 
-			fmt.Println("Received:", post.Content)
+			//fmt.Println("Received:", post.Content)
 
 			// Weiterleitung an den Client
 			ch <- &post
@@ -93,7 +97,7 @@ func (s *ChatService) SendChatMessage(post *repository.Post) {
 		panic(err)
 	}
 
-	fmt.Println("Sent:", post.Content)
+	//fmt.Println("Sent:", post.Content)
 
 	//s.pubSub.Publish("chat", post)
 }

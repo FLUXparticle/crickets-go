@@ -28,5 +28,5 @@ func (r *UserRepository) FindByUsername(username string) *User {
 
 func (r *UserRepository) Save(user *User) {
 	r.users[user.Username] = user
-	user.ID = len(r.users)
+	user.ID = int32(len(r.users))
 }

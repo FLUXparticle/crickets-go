@@ -21,41 +21,62 @@ func NewProfileService(userRepository *repository.UserRepository, subscriptionRe
 	}
 }
 
-func (s *ProfileService) SubscriberCount(creatorID int) int {
+func (s *ProfileService) SubscriberCount(creatorID int32) int {
 	return len(s.subscriptionRepository.FindByCreatorID(creatorID))
 }
 
 func (s *ProfileService) Subscribe(subscriber *repository.User, creatorServer string, creatorName string) (string, error) {
 	if creatorServer == "" {
-		creator := s.userRepository.FindByUsername(creatorName)
-		if creator == nil {
-			return "", errors.New("user not found")
+		creator, err := s.LocalSubscribe(subscriber, creatorName)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("Successfully subscribed to user '%s'", creator.Username), nil
+	} else {
+		creator, err := s.remoteSubscribe(creatorServer, creatorName, subscriber)
+		if err != nil {
+			return "", err
 		}
 		s.subscriptionRepository.Save(&repository.Subscription{
 			Creator:    creator,
 			Subscriber: subscriber,
 		})
-	} else {
-		s.sendSubscribe(creatorServer, creatorName, subscriber.Username)
+		return fmt.Sprintf("Successfully subscribed to user '%s' on server '%s'", creator.Username, creatorServer), nil
 	}
-	return "success", nil
 }
 
-func (s *ProfileService) sendSubscribe(creatorServer string, creatorName string, subscriberName string) {
+func (s *ProfileService) LocalSubscribe(subscriber *repository.User, creatorName string) (*repository.User, error) {
+	creator := s.userRepository.FindByUsername(creatorName)
+	if creator == nil {
+		return nil, errors.New(fmt.Sprintf("user '%s' not found", creatorName))
+	}
+	subscription := &repository.Subscription{
+		Creator:    creator,
+		Subscriber: subscriber,
+	}
+	s.subscriptionRepository.Save(subscription)
+	return creator, nil
+}
+
+func (s *ProfileService) remoteSubscribe(creatorServer string, creatorName string, subscriber *repository.User) (*repository.User, error) {
 	client := resty.New()
 
-	hostname, err := os.Hostname()
+	// TODO Hostname über Fx (Config) default: localhost
+	hostname, _ := os.Hostname()
 	apiKey := os.Getenv("API_KEY")
 
 	// Daten für die Anfrage
-	data := map[string]string{
-		"subscriberServer": hostname,
-		"subscriberName":   subscriberName,
-		"creatorName":      creatorName,
+	data := &common.SubscribeRequest{
+		Subscriber: &repository.User{
+			ID:       subscriber.ID,
+			Server:   hostname,
+			Username: subscriber.Username,
+		},
+		CreatorName: creatorName,
 	}
 
 	// Anfrage an den Endpunkt senden
-	resp, err := client.R().
+	response, err := client.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("X-API-KEY", apiKey).
 		SetBody(data).
@@ -65,20 +86,19 @@ func (s *ProfileService) sendSubscribe(creatorServer string, creatorName string,
 	// Fehlerbehandlung
 	if err != nil {
 		fmt.Printf("Error making request: %v\n", err)
-		return
+		return nil, errors.New("error making request")
 	}
 
 	// Auswertung der Antwort
-	subscribeResponse := resp.Result().(*common.SubscribeResponse)
-	if len(subscribeResponse.Errors) > 0 {
-		fmt.Println("Errors:")
-		for _, err := range subscribeResponse.Errors {
-			fmt.Printf(" - %s\n", err)
-		}
+	subscribeResponse := response.Result().(*common.SubscribeResponse)
+	if len(subscribeResponse.Error) > 0 {
+		return nil, errors.New(subscribeResponse.Error)
 	} else {
-		fmt.Println("Successes:")
-		for _, success := range subscribeResponse.Successes {
-			fmt.Printf(" - %s\n", success)
-		}
+		creator := subscribeResponse.User
+		return &repository.User{
+			ID:       creator.ID,
+			Server:   creatorServer,
+			Username: creator.Username,
+		}, nil
 	}
 }

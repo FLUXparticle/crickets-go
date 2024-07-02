@@ -7,15 +7,14 @@ import (
 	"crickets-go/handler"
 	"crickets-go/repository"
 	"crickets-go/service"
+	"go.uber.org/fx"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"strings"
-	"time"
-
-	"go.uber.org/fx"
-	"google.golang.org/grpc"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,7 +45,7 @@ func staticFileServer() gin.HandlerFunc {
 	}
 }
 
-func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler, timelineHandler *handler.TimelineHandler, chatHandler *handler.ChatHandler, serverHandler *handler.ServerHandler) http.Handler {
+func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.ProfileHandler, timelineHandler *handler.TimelineHandler, chatHandler *handler.ChatHandler, internalHandler *handler.InternalHandler, debugHandler *handler.DebugHandler) http.Handler {
 	// gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
@@ -75,7 +74,14 @@ func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.Pro
 		{
 			internal := api.Group("/internal")
 
-			internal.POST("/subscribe", serverHandler.Subscribe)
+			internal.POST("/subscribe", internalHandler.Subscribe)
+		}
+
+		// Debug-Routes (müssen natürlich für den Release deaktiviert werden)
+		{
+			debug := api.Group("/debug")
+
+			debug.GET("/subscriptions", debugHandler.Subscriptions)
 		}
 	}
 
@@ -117,13 +123,39 @@ func (s *server) Search(ctx context.Context, req *timeline.SearchRequest) (*time
 	posts := s.timelineService.Search("", req.Query)
 	responsePosts := make([]*timeline.Post, len(posts))
 	for i, post := range posts {
-		responsePosts[i] = &timeline.Post{
-			Username:  post.Creator.Username,
-			Content:   post.Content,
-			CreatedAt: post.CreatedAt.Format(time.RFC3339),
-		}
+		responsePosts[i] = convertPost(post)
 	}
 	return &timeline.SearchResponse{Posts: responsePosts}, nil
+}
+
+func (s *server) TimelineUpdates(req *timeline.TimelineUpdateRequest, stream timeline.TimelineService_TimelineUpdatesServer) error {
+	// Fetch updates from the TimelineService
+	updatesChan := s.timelineService.LocalTimelineUpdates(req.CreatorIds)
+
+	for {
+		select {
+		case update, ok := <-updatesChan:
+			if !ok {
+				return nil
+			}
+			post := convertPost(update)
+			if err := stream.Send(&timeline.TimelineUpdateResponse{Post: post}); err != nil {
+				log.Printf("Error sending update: %v", err)
+				return err
+			}
+		case <-stream.Context().Done():
+			return stream.Context().Err()
+		}
+	}
+}
+
+func convertPost(update *repository.Post) *timeline.Post {
+	post := &timeline.Post{
+		Username:  update.Creator.Username,
+		Content:   update.Content,
+		CreatedAt: timestamppb.New(update.CreatedAt),
+	}
+	return post
 }
 
 // NewGRPCServer initialisiert und startet den gRPC-Server
@@ -163,7 +195,8 @@ func main() {
 			handler.NewProfileHandler,
 			handler.NewTimelineHandler,
 			handler.NewChatHandler,
-			handler.NewServerHandler,
+			handler.NewInternalHandler,
+			handler.NewDebugHandler,
 
 			service.NewUserService,
 			service.NewProfileService,

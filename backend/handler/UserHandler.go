@@ -23,6 +23,11 @@ func NewUserHandler(service *service.UserService) *UserHandler {
 func (h *UserHandler) Auth(c *gin.Context) {
 	requestURI := c.Request.RequestURI
 
+	if strings.Contains(requestURI, "/api/debug/") {
+		c.Next()
+		return
+	}
+
 	// API-Key für interne Nutzung prüfen
 	if strings.Contains(requestURI, "/api/internal/") {
 		apiKey := c.GetHeader("X-API-KEY")

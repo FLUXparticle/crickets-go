@@ -15,6 +15,7 @@ type TimelineService struct {
 	postRepository         *repository.PostRepository
 	subscriptionRepository *repository.SubscriptionRepository
 	pubSub                 *PubSub
+	clientMap              map[string]timeline.TimelineServiceClient
 }
 
 func NewTimelineService(postRepository *repository.PostRepository, subscriptionRepository *repository.SubscriptionRepository, pubSub *PubSub) *TimelineService {
@@ -22,29 +23,78 @@ func NewTimelineService(postRepository *repository.PostRepository, subscriptionR
 		postRepository:         postRepository,
 		subscriptionRepository: subscriptionRepository,
 		pubSub:                 pubSub,
+		clientMap:              make(map[string]timeline.TimelineServiceClient),
 	}
 }
 
-func (s *TimelineService) TimelineUpdates(subscriber *repository.User) chan *repository.Post {
-	subscriptions := s.subscriptionRepository.FindBySubscriberID(subscriber.ID)
+func (s *TimelineService) TimelineUpdates(subscriberID int32) chan *repository.Post {
+	subscriptions := s.subscriptionRepository.FindBySubscriberServerAndSubscriberID("", subscriberID)
 
-	creators := make([]*repository.User, len(subscriptions))
-	for i, sub := range subscriptions {
-		creators[i] = sub.Creator
+	creatorIDsMap := make(map[string][]int32)
+	for _, sub := range subscriptions {
+		creator := sub.Creator
+		creatorServer := creator.Server
+		creatorIDsMap[creatorServer] = append(creatorIDsMap[creatorServer], creator.ID)
 	}
 
-	aggregator := make(chan *repository.Post)
+	channels := make([]chan *repository.Post, 0)
 
-	for _, creator := range creators {
-		ch := s.pubSub.Subscribe(userID(creator))
-		go func() {
-			for post := range ch {
-				aggregator <- post
+	for server, creatorIDs := range creatorIDsMap {
+		var ch chan *repository.Post
+		var err error
+		if len(server) == 0 {
+			ch = s.LocalTimelineUpdates(creatorIDs)
+		} else {
+			ch, err = s.remoteTimelineUpdates(server, creatorIDs)
+			if err != nil {
+				log.Printf("Error fetching updates from server %s: %v", server, err)
+				continue
 			}
-		}()
+		}
+		channels = append(channels, ch)
 	}
 
-	return aggregator
+	return aggregate(channels)
+}
+
+func (s *TimelineService) LocalTimelineUpdates(creatorIDs []int32) chan *repository.Post {
+	channels := make([]chan *repository.Post, 0)
+	for _, creatorID := range creatorIDs {
+		ch := s.pubSub.Subscribe(userID(creatorID))
+		channels = append(channels, ch)
+	}
+	return aggregate(channels)
+}
+
+func (s *TimelineService) remoteTimelineUpdates(server string, creatorIDs []int32) (chan *repository.Post, error) {
+	client, err := s.getClient(server)
+	if err != nil {
+		return nil, err
+	}
+
+	request := &timeline.TimelineUpdateRequest{
+		CreatorIds: creatorIDs,
+	}
+
+	stream, err := client.TimelineUpdates(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
+
+	ch := make(chan *repository.Post)
+	go func() {
+		for {
+			response, err := stream.Recv()
+			if err != nil {
+				close(ch)
+				return
+			}
+
+			ch <- convertPost(server, response.Post)
+		}
+	}()
+
+	return ch, nil
 }
 
 func (s *TimelineService) Post(creator *repository.User, content string) {
@@ -55,7 +105,7 @@ func (s *TimelineService) Post(creator *repository.User, content string) {
 	}
 
 	s.postRepository.Save(post)
-	s.pubSub.Publish(userID(creator), post)
+	s.pubSub.Publish(userID(creator.ID), post)
 }
 
 func (s *TimelineService) Search(server string, query string) []*repository.Post {
@@ -63,42 +113,71 @@ func (s *TimelineService) Search(server string, query string) []*repository.Post
 		return s.postRepository.FindByContentContains(query)
 	} else {
 		// Erstelle eine gRPC-Verbindung zum entfernten Server
-		conn, err := grpc.NewClient("dns:"+server+":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		client, err := s.getClient(server)
 		if err != nil {
-			log.Fatalf("did not connect: %v", err)
+			log.Printf("Error connecting to server %s: %v", server, err)
+			return nil
 		}
-		defer conn.Close()
-
-		client := timeline.NewTimelineServiceClient(conn)
 
 		// Erstelle einen Kontext mit Timeout
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
 		// Führe die gRPC-Suche durch
-		resp, err := client.Search(ctx, &timeline.SearchRequest{Query: query})
+		response, err := client.Search(ctx, &timeline.SearchRequest{Query: query})
 		if err != nil {
-			log.Fatalf("could not search: %v", err)
+			log.Fatalf("Error search posts from server %s: %v", server, err)
+			return nil
 		}
 
 		// Konvertiere die Antwort in das interne Format
-		posts := make([]*repository.Post, len(resp.Posts))
-		for idx, post := range resp.Posts {
-			// TODO Fehlerbehandlung
-			parsedTime, _ := time.Parse(time.RFC3339, post.CreatedAt)
-			posts[idx] = &repository.Post{
-				Creator: &repository.User{
-					Username: post.Username,
-					Server:   server,
-				},
-				Content:   post.Content,
-				CreatedAt: parsedTime,
-			}
+		posts := make([]*repository.Post, len(response.Posts))
+		for idx, post := range response.Posts {
+			posts[idx] = convertPost(server, post)
 		}
 		return posts
 	}
 }
 
-func userID(user *repository.User) string {
-	return fmt.Sprintf("creator%d", user.ID)
+func (s *TimelineService) getClient(server string) (timeline.TimelineServiceClient, error) {
+	if client, exists := s.clientMap[server]; exists {
+		return client, nil
+	}
+
+	conn, err := grpc.NewClient("dns:"+server+":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	client := timeline.NewTimelineServiceClient(conn)
+	s.clientMap[server] = client
+	return client, nil
+}
+
+func convertPost(server string, post *timeline.Post) *repository.Post {
+	r := &repository.Post{
+		Creator: &repository.User{
+			Username: post.Username,
+			Server:   server,
+		},
+		Content:   post.Content,
+		CreatedAt: post.CreatedAt.AsTime(),
+	}
+	return r
+}
+
+func aggregate(channels []chan *repository.Post) chan *repository.Post {
+	aggregator := make(chan *repository.Post)
+	for _, ch := range channels {
+		go func() {
+			for post := range ch {
+				aggregator <- post
+			}
+		}()
+	}
+	return aggregator
+}
+
+func userID(userID int32) string {
+	return fmt.Sprintf("creator%d", userID)
 }
