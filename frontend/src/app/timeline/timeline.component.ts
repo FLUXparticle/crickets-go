@@ -46,6 +46,13 @@ export class TimelineComponent implements OnInit, OnDestroy {
                 this.timeline.push(post);
             });
         };
+        this.eventSource.onerror = (event) => {
+            console.error("EventSource failed:", event);
+            // Versuche die Verbindung nach einer kurzen Pause wiederherzustellen
+            setTimeout(() => {
+                this.subscribeToTimeline();
+            }, 5000); // 5 Sekunden warten
+        };
     }
 
     createPost(): void {
