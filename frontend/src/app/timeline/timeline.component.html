@@ -24,6 +24,7 @@
 <div>
     <h2>Suche</h2>
     <form (ngSubmit)="searchPosts()">
+        <input type="text" [(ngModel)]="searchServer" name="searchServer" placeholder="Server" required>
         <input type="text" [(ngModel)]="searchQuery" name="searchQuery" placeholder="Suchbegriff">
         <button type="submit">Suchen</button>
     </form>

@@ -21,9 +21,10 @@ func NewTimelineHandler(userHandler *UserHandler, timelineService *service.Timel
 }
 
 func (h *TimelineHandler) Search(c *gin.Context) {
+	server := c.Param("s")
 	query := c.Param("q")
 
-	posts := h.timelineService.Search("localhost", query)
+	posts := h.timelineService.Search(server, query)
 
 	result := make([]map[string]any, len(posts))
 	for i, post := range posts {

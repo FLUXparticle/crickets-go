@@ -18,6 +18,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
     timeline: Post[] = [];
     server: string = '';
     creatorName: string = '';
+    searchServer: string = '';
     searchQuery: string = '';
     searchResults: Post[] = [];
     private eventSource: EventSource | null = null;
@@ -57,14 +58,13 @@ export class TimelineComponent implements OnInit, OnDestroy {
     }
 
     searchPosts(): void {
+        let server = this.searchServer.trim()
         let query = this.searchQuery.trim()
         if (query !== '') {
             this.searchResults = [];
-            this.http.get<Post[]>(`/api/search?q=${query}`).subscribe({
+            this.http.get<Post[]>(`/api/search?s=${server}&q=${query}`).subscribe({
                 next: (results) => {
-                    // this.ngZone.run(() => {
-                        this.searchResults = results;
-                    // });
+                    this.searchResults = results;
                 },
                 error: (err) => {
                     console.log('Error!', err);

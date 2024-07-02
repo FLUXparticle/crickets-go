@@ -1,5 +1,5 @@
 <h1>Profile</h1>
-<p>You have {{ subscriberCount }} subscribers.</p>
+<p>Du hast {{ subscriberCount }} Abonnenten.</p>
 
 <hr>
 
@@ -17,5 +17,5 @@
 <form (ngSubmit)="onSubmit()">
     <input type="text" [(ngModel)]="subscribeForm.server" name="server" placeholder="Server" required>
     <input type="text" [(ngModel)]="subscribeForm.creatorName" name="creatorName" placeholder="Username" required>
-    <button type="submit">Subscribe</button>
+    <button type="submit">Abonnieren</button>
 </form>
