@@ -4,15 +4,11 @@
 <hr>
 
 <h2>Subscribe to Users</h2>
-<div *ngIf="successes.length">
-    <ul>
-        <li *ngFor="let success of successes">{{ success }}</li>
-    </ul>
+<div *ngIf="success">
+    {{ success }}
 </div>
-<div *ngIf="errors.length">
-    <ul>
-        <li *ngFor="let error of errors">{{ error }}</li>
-    </ul>
+<div *ngIf="error">
+    {{ error }}
 </div>
 <form (ngSubmit)="onSubmit()">
     <input type="text" [(ngModel)]="subscribeForm.server" name="server" placeholder="Server" required>

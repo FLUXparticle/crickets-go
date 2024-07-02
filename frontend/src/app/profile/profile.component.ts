@@ -8,8 +8,8 @@ import {HttpClient} from '@angular/common/http';
 })
 export class ProfileComponent implements OnInit {
     subscriberCount: number = 0;
-    successes: string[] = [];
-    errors: string[] = [];
+    success: string = '';
+    error: string = '';
     subscribeForm = {
         server: '',
         creatorName: ''
@@ -34,15 +34,15 @@ export class ProfileComponent implements OnInit {
     }
 
     onSubmit(): void {
-        this.http.post<{ successes: string[], errors: string[] }>('/api/subscribe', this.subscribeForm)
+        this.http.post<{ success: string, error: string }>('/api/subscribe', this.subscribeForm)
             .subscribe({
                 next: (data) => {
-                    this.successes = data.successes || [];
-                    this.errors = data.errors || [];
+                    this.success = data.success || '';
+                    this.error = data.error || '';
                 },
                 error: (err) => {
-                    console.error('Error subscribing:', err);
-                    this.errors = ['An error occurred while subscribing. Please try again.'];
+                    this.success = '';
+                    this.error = `Error subscribing: ${err}`;
                 }
             });
     }
