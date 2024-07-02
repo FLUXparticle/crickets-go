@@ -4,14 +4,12 @@ package main
 import (
 	"context"
 	"crickets-go/config"
-	"crickets-go/data"
 	"crickets-go/gen/timeline"
 	"crickets-go/handler"
 	"crickets-go/repository"
 	"crickets-go/service"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 	"net"
 	"net/http"
@@ -116,56 +114,12 @@ func NewHTTPServer(lc fx.Lifecycle, logger *log.Logger, handler http.Handler) *h
 	return srv
 }
 
-type server struct {
-	timeline.UnimplementedTimelineServiceServer
-	timelineService *service.TimelineService
-}
-
-func (s *server) Search(ctx context.Context, req *timeline.SearchRequest) (*timeline.SearchResponse, error) {
-	posts := s.timelineService.Search("", req.Query)
-	responsePosts := make([]*timeline.Post, len(posts))
-	for i, post := range posts {
-		responsePosts[i] = convertPost(post)
-	}
-	return &timeline.SearchResponse{Posts: responsePosts}, nil
-}
-
-func (s *server) TimelineUpdates(req *timeline.TimelineUpdateRequest, stream timeline.TimelineService_TimelineUpdatesServer) error {
-	// Fetch updates from the TimelineService
-	updatesChan := s.timelineService.LocalTimelineUpdates(req.CreatorIds)
-
-	for {
-		select {
-		case update, ok := <-updatesChan:
-			if !ok {
-				return nil
-			}
-			post := convertPost(update)
-			if err := stream.Send(&timeline.TimelineUpdateResponse{Post: post}); err != nil {
-				log.Printf("Error sending update: %v", err)
-				return err
-			}
-		case <-stream.Context().Done():
-			return stream.Context().Err()
-		}
-	}
-}
-
-func convertPost(update *data.Post) *timeline.Post {
-	post := &timeline.Post{
-		Username:  update.Creator.Username,
-		Content:   update.Content,
-		CreatedAt: timestamppb.New(update.CreatedAt),
-	}
-	return post
-}
-
 // NewGRPCServer initialisiert und startet den gRPC-Server
-func NewGRPCServer(lc fx.Lifecycle, logger *log.Logger, timelineService *service.TimelineService) *grpc.Server {
+func NewGRPCServer(lc fx.Lifecycle, logger *log.Logger, grpcHandler *handler.GRPCHandler) *grpc.Server {
 	localhost := os.Getenv("LOCALHOST")
 	addr := localhost + ":50051"
 	grpcServer := grpc.NewServer()
-	timeline.RegisterTimelineServiceServer(grpcServer, &server{timelineService: timelineService})
+	timeline.RegisterTimelineServiceServer(grpcServer, grpcHandler)
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
@@ -201,6 +155,7 @@ func main() {
 			handler.NewChatHandler,
 			handler.NewInternalHandler,
 			handler.NewDebugHandler,
+			handler.NewGRPCHandler,
 
 			service.NewUserService,
 			service.NewProfileService,

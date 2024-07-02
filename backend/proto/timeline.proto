@@ -7,7 +7,7 @@ import "google/protobuf/timestamp.proto";
 option go_package = "gen/timeline";
 
 service TimelineService {
-  rpc Search (SearchRequest) returns (SearchResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
   rpc TimelineUpdates(TimelineUpdateRequest) returns (stream TimelineUpdateResponse);
 }
 
