@@ -102,7 +102,7 @@ func (s *TimelineService) remoteTimelineUpdates(server string, creatorIDs []int3
 	return ch, nil
 }
 
-func (s *TimelineService) Post(creator *data.User, content string) {
+func (s *TimelineService) Post(creator *data.User, content string) error {
 	post := &data.Post{
 		Creator:   creator,
 		Content:   content,
@@ -110,7 +110,7 @@ func (s *TimelineService) Post(creator *data.User, content string) {
 	}
 
 	s.postRepository.Save(post)
-	s.pubSub.Publish(userID(creator.ID), post)
+	return s.pubSub.Publish(userID(creator.ID), post)
 }
 
 func (s *TimelineService) Search(server string, query string) []*data.Post {
@@ -145,18 +145,19 @@ func (s *TimelineService) Search(server string, query string) []*data.Post {
 }
 
 func (s *TimelineService) getClient(server string) (timeline.TimelineServiceClient, error) {
-	if client, exists := s.clientMap[server]; exists {
-		return client, nil
+	timelineClient, exists := s.clientMap[server]
+
+	if !exists {
+		client, err := grpc.NewClient("dns:"+server+":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, err
+		}
+
+		timelineClient = timeline.NewTimelineServiceClient(client)
+		s.clientMap[server] = timelineClient
 	}
 
-	conn, err := grpc.NewClient("dns:"+server+":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
-	}
-
-	client := timeline.NewTimelineServiceClient(conn)
-	s.clientMap[server] = client
-	return client, nil
+	return timelineClient, nil
 }
 
 func convertPost(server string, post *timeline.Post) *data.Post {

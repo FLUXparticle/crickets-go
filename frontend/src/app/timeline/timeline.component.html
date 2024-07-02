@@ -12,8 +12,8 @@
 
 <hr>
 
-<div *ngIf="error">
-    {{ error }}
+<div *ngIf="errorPost">
+    {{ errorPost }}
 </div>
 
 <div>
@@ -33,6 +33,9 @@
         <input type="text" [(ngModel)]="searchQuery" name="searchQuery" placeholder="Suchbegriff">
         <button type="submit">Suchen</button>
     </form>
+    <div *ngIf="errorSearch">
+        {{ errorSearch }}
+    </div>
     <ul class="posts">
         <li *ngFor="let post of searchResults" class="post">
             <div class="post-header">

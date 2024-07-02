@@ -21,17 +21,22 @@ func NewTimelineHandler(userHandler *UserHandler, timelineService *service.Timel
 }
 
 func (h *TimelineHandler) Search(c *gin.Context) {
-	server := c.Param("s")
-	query := c.Param("q")
+	server := c.Query("s")
+	query := c.Query("q")
 
 	posts := h.timelineService.Search(server, query)
 
-	result := make([]map[string]any, len(posts))
+	searchResults := make([]map[string]any, len(posts))
 	for i, post := range posts {
-		result[i] = displayPost(post)
+		searchResults[i] = displayPost(post)
 	}
 
-	c.JSON(http.StatusOK, result)
+	if len(searchResults) == 0 {
+		c.JSON(http.StatusOK, gin.H{"error": "nothing found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"searchResults": searchResults})
 }
 
 func (h *TimelineHandler) Post(c *gin.Context) {
@@ -39,12 +44,18 @@ func (h *TimelineHandler) Post(c *gin.Context) {
 		Content string `json:"content" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
 		return
 	}
 
 	creator := h.userHandler.getUser(c)
-	h.timelineService.Post(creator, body.Content)
+	err := h.timelineService.Post(creator, body.Content)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
 }
 
 func (h *TimelineHandler) Timeline(c *gin.Context) {

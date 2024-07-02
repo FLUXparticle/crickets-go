@@ -13,7 +13,8 @@ interface Post {
     styleUrls: ['./timeline.component.css']
 })
 export class TimelineComponent implements OnInit, OnDestroy {
-    error: string = '';
+    errorPost: string = '';
+    errorSearch: string = '';
     newPostContent: string = '';
     timeline: Post[] = [];
     server: string = '';
@@ -55,7 +56,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
                     this.newPostContent = '';
                 },
                 error: (err) => {
-                    this.error = `Error: ${err}`;
+                    this.errorPost = `Error: ${err}`;
                 }
             });
         }
@@ -66,13 +67,13 @@ export class TimelineComponent implements OnInit, OnDestroy {
         let query = this.searchQuery.trim()
         if (query !== '') {
             this.searchResults = [];
-            this.http.get<Post[]>(`/api/search?s=${server}&q=${query}`).subscribe({
-                next: (results) => {
-                    this.error = ``;
-                    this.searchResults = results;
+            this.http.get<{searchResults:Post[],error:string}>(`/api/search?s=${server}&q=${query}`).subscribe({
+                next: (data) => {
+                    this.errorSearch = data.error || '';
+                    this.searchResults = data.searchResults || [];
                 },
                 error: (err) => {
-                    this.error = `Error: ${err}`;
+                    this.errorSearch = `Error: ${err}`;
                 }
             });
         }
