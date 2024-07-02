@@ -21,3 +21,8 @@ async function login() {
         errorMessage.textContent = result.error;
     }
 }
+
+document.getElementById("loginForm").onsubmit = (event) => {
+    event.preventDefault()
+    login()
+}
