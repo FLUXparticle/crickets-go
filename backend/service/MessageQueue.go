@@ -1,9 +1,9 @@
 package service
 
-import "crickets-go/repository"
+import "crickets-go/data"
 
 type MessageQueue interface {
-	Subscribe(topic string) chan *repository.Post
-	Unsubscribe(topic string, ch chan *repository.Post)
-	Publish(topic string, post *repository.Post) error
+	Subscribe(topic string) chan *data.Post
+	Unsubscribe(topic string, ch chan *data.Post)
+	Publish(topic string, post *data.Post) error
 }

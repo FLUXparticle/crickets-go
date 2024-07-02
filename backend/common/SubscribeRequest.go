@@ -1,8 +1,10 @@
 package common
 
-import "crickets-go/repository"
+import (
+	"crickets-go/data"
+)
 
 type SubscribeRequest struct {
-	Subscriber  *repository.User `json:"subscriber" binding:"required"`
-	CreatorName string           `json:"creatorName" binding:"required"`
+	Subscriber  *data.User `json:"subscriber" binding:"required"`
+	CreatorName string     `json:"creatorName" binding:"required"`
 }

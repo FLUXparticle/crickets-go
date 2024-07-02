@@ -1,8 +1,9 @@
 <h1>Timeline</h1>
+
 <ul class="posts">
     <li *ngFor="let post of timeline" class="post">
         <div class="post-header">
-            <span class="post-username">{{ post.username }}</span>
+            <span class="post-username">{{ post.creatorName }}</span>
             <span class="post-date">{{ post.createdAt | date:'short' }}</span>
         </div>
         <div class="post-content">{{ post.content }}</div>
@@ -10,6 +11,10 @@
 </ul>
 
 <hr>
+
+<div *ngIf="error">
+    {{ error }}
+</div>
 
 <div>
     <h2>Neuer Post</h2>
@@ -31,7 +36,7 @@
     <ul class="posts">
         <li *ngFor="let post of searchResults" class="post">
             <div class="post-header">
-                <span class="post-username">{{ post.username }}</span>
+                <span class="post-username">{{ post.creatorName }}</span>
                 <span class="post-date">{{ post.createdAt | date:'short' }}</span>
             </div>
             <div class="post-content">{{ post.content }}</div>

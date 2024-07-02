@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crickets-go/data"
 	"crickets-go/gen/timeline"
 	"crickets-go/repository"
 	"fmt"
@@ -27,7 +28,7 @@ func NewTimelineService(postRepository *repository.PostRepository, subscriptionR
 	}
 }
 
-func (s *TimelineService) TimelineUpdates(subscriberID int32) chan *repository.Post {
+func (s *TimelineService) TimelineUpdates(subscriberID int32) chan *data.Post {
 	subscriptions := s.subscriptionRepository.FindBySubscriberServerAndSubscriberID("", subscriberID)
 
 	creatorIDsMap := make(map[string][]int32)
@@ -37,10 +38,10 @@ func (s *TimelineService) TimelineUpdates(subscriberID int32) chan *repository.P
 		creatorIDsMap[creatorServer] = append(creatorIDsMap[creatorServer], creator.ID)
 	}
 
-	channels := make([]chan *repository.Post, 0)
+	channels := make([]chan *data.Post, 0)
 
 	for server, creatorIDs := range creatorIDsMap {
-		var ch chan *repository.Post
+		var ch chan *data.Post
 		var err error
 		if len(server) == 0 {
 			ch = s.LocalTimelineUpdates(creatorIDs)
@@ -57,8 +58,8 @@ func (s *TimelineService) TimelineUpdates(subscriberID int32) chan *repository.P
 	return aggregate(channels)
 }
 
-func (s *TimelineService) LocalTimelineUpdates(creatorIDs []int32) chan *repository.Post {
-	channels := make([]chan *repository.Post, 0)
+func (s *TimelineService) LocalTimelineUpdates(creatorIDs []int32) chan *data.Post {
+	channels := make([]chan *data.Post, 0)
 	for _, creatorID := range creatorIDs {
 		ch := s.pubSub.Subscribe(userID(creatorID))
 		channels = append(channels, ch)
@@ -66,7 +67,7 @@ func (s *TimelineService) LocalTimelineUpdates(creatorIDs []int32) chan *reposit
 	return aggregate(channels)
 }
 
-func (s *TimelineService) remoteTimelineUpdates(server string, creatorIDs []int32) (chan *repository.Post, error) {
+func (s *TimelineService) remoteTimelineUpdates(server string, creatorIDs []int32) (chan *data.Post, error) {
 	client, err := s.getClient(server)
 	if err != nil {
 		return nil, err
@@ -81,7 +82,7 @@ func (s *TimelineService) remoteTimelineUpdates(server string, creatorIDs []int3
 		return nil, err
 	}
 
-	ch := make(chan *repository.Post)
+	ch := make(chan *data.Post)
 	go func() {
 		for {
 			response, err := stream.Recv()
@@ -97,8 +98,8 @@ func (s *TimelineService) remoteTimelineUpdates(server string, creatorIDs []int3
 	return ch, nil
 }
 
-func (s *TimelineService) Post(creator *repository.User, content string) {
-	post := &repository.Post{
+func (s *TimelineService) Post(creator *data.User, content string) {
+	post := &data.Post{
 		Creator:   creator,
 		Content:   content,
 		CreatedAt: time.Now(),
@@ -108,7 +109,7 @@ func (s *TimelineService) Post(creator *repository.User, content string) {
 	s.pubSub.Publish(userID(creator.ID), post)
 }
 
-func (s *TimelineService) Search(server string, query string) []*repository.Post {
+func (s *TimelineService) Search(server string, query string) []*data.Post {
 	if len(server) == 0 {
 		return s.postRepository.FindByContentContains(query)
 	} else {
@@ -131,7 +132,7 @@ func (s *TimelineService) Search(server string, query string) []*repository.Post
 		}
 
 		// Konvertiere die Antwort in das interne Format
-		posts := make([]*repository.Post, len(response.Posts))
+		posts := make([]*data.Post, len(response.Posts))
 		for idx, post := range response.Posts {
 			posts[idx] = convertPost(server, post)
 		}
@@ -154,9 +155,9 @@ func (s *TimelineService) getClient(server string) (timeline.TimelineServiceClie
 	return client, nil
 }
 
-func convertPost(server string, post *timeline.Post) *repository.Post {
-	r := &repository.Post{
-		Creator: &repository.User{
+func convertPost(server string, post *timeline.Post) *data.Post {
+	r := &data.Post{
+		Creator: &data.User{
 			Username: post.Username,
 			Server:   server,
 		},
@@ -166,8 +167,8 @@ func convertPost(server string, post *timeline.Post) *repository.Post {
 	return r
 }
 
-func aggregate(channels []chan *repository.Post) chan *repository.Post {
-	aggregator := make(chan *repository.Post)
+func aggregate(channels []chan *data.Post) chan *data.Post {
+	aggregator := make(chan *data.Post)
 	for _, ch := range channels {
 		go func() {
 			for post := range ch {

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"crickets-go/repository"
+	"crickets-go/data"
 	"crickets-go/service"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -35,16 +35,16 @@ func (h *TimelineHandler) Search(c *gin.Context) {
 }
 
 func (h *TimelineHandler) Post(c *gin.Context) {
-	var data struct {
+	var body struct {
 		Content string `json:"content" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&data); err != nil {
+	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	creator := h.userHandler.getUser(c)
-	h.timelineService.Post(creator, data.Content)
+	h.timelineService.Post(creator, body.Content)
 }
 
 func (h *TimelineHandler) Timeline(c *gin.Context) {
@@ -64,15 +64,15 @@ func (h *TimelineHandler) Timeline(c *gin.Context) {
 	})
 }
 
-func displayPost(post *repository.Post) map[string]any {
+func displayPost(post *data.Post) map[string]any {
 	creator := post.Creator
-	username := creator.Username
+	creatorName := creator.Username
 	if len(creator.Server) > 0 {
-		username += "@" + creator.Server
+		creatorName += "@" + creator.Server
 	}
 	return map[string]any{
-		"username":  username,
-		"content":   post.Content,
-		"createdAt": post.CreatedAt,
+		"creatorName": creatorName,
+		"content":     post.Content,
+		"createdAt":   post.CreatedAt,
 	}
 }

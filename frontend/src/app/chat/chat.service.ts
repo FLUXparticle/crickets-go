@@ -2,7 +2,7 @@ import {Injectable, NgZone} from '@angular/core';
 import {Observable, Subject} from 'rxjs';
 
 export interface Post {
-    username: string;
+    creatorName: string;
     content: string;
     createdAt: string;
 }

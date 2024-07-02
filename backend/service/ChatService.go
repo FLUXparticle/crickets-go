@@ -1,7 +1,7 @@
 package service
 
 import (
-	"crickets-go/repository"
+	"crickets-go/data"
 )
 
 const chatTopic = "chat_queue"
@@ -16,12 +16,12 @@ func NewChatService(messageQueueProvider *MessageQueueProvider) *ChatService {
 	}
 }
 
-func (s *ChatService) ChatUpdates() chan *repository.Post {
+func (s *ChatService) ChatUpdates() chan *data.Post {
 	mq := s.messageQueueProvider.GetMessageQueue()
 	return mq.Subscribe(chatTopic)
 }
 
-func (s *ChatService) SendChatMessage(post *repository.Post) error {
+func (s *ChatService) SendChatMessage(post *data.Post) error {
 	mq := s.messageQueueProvider.GetMessageQueue()
 	return mq.Publish(chatTopic, post)
 }

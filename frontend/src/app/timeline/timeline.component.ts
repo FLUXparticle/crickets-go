@@ -2,7 +2,7 @@ import {Component, NgZone, OnDestroy, OnInit} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 
 interface Post {
-    username: string;
+    creatorName: string;
     content: string;
     createdAt: string;
 }
@@ -13,7 +13,7 @@ interface Post {
     styleUrls: ['./timeline.component.css']
 })
 export class TimelineComponent implements OnInit, OnDestroy {
-    username: string = 'Benutzername';
+    error: string = '';
     newPostContent: string = '';
     timeline: Post[] = [];
     server: string = '';
@@ -37,7 +37,6 @@ export class TimelineComponent implements OnInit, OnDestroy {
     }
 
     subscribeToTimeline() {
-        console.log("subscribeToTimeline");
         this.eventSource = new EventSource('/api/timeline');
         this.eventSource.onmessage = (event) => {
             console.log(event);
@@ -51,8 +50,13 @@ export class TimelineComponent implements OnInit, OnDestroy {
     createPost(): void {
         let content = this.newPostContent.trim();
         if (content !== '') {
-            this.http.post('/api/post', { content: content }).subscribe(() => {
-                this.newPostContent = '';
+            this.http.post('/api/post', { content: content }).subscribe({
+                next: () => {
+                    this.newPostContent = '';
+                },
+                error: (err) => {
+                    this.error = `Error: ${err}`;
+                }
             });
         }
     }
@@ -64,10 +68,11 @@ export class TimelineComponent implements OnInit, OnDestroy {
             this.searchResults = [];
             this.http.get<Post[]>(`/api/search?s=${server}&q=${query}`).subscribe({
                 next: (results) => {
+                    this.error = ``;
                     this.searchResults = results;
                 },
                 error: (err) => {
-                    console.log('Error!', err);
+                    this.error = `Error: ${err}`;
                 }
             });
         }

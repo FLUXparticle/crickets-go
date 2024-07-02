@@ -1,7 +1,7 @@
 <h1>Chat</h1>
 <div class="messages">
     <div *ngFor="let message of messages" class="message">
-        <span class="username">{{ message.username }}</span>
+        <span class="username">{{ message.creatorName }}</span>
         <span class="content">{{ message.content }}</span>
         <span class="timestamp">{{ message.createdAt | date:'shortTime' }}</span>
     </div>

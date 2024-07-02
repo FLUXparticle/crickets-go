@@ -2,7 +2,7 @@ package handler
 
 import (
 	"crickets-go/common"
-	"crickets-go/repository"
+	"crickets-go/data"
 	"crickets-go/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -17,22 +17,25 @@ func NewInternalHandler(profileService *service.ProfileService) *InternalHandler
 }
 
 func (h *InternalHandler) Subscribe(c *gin.Context) {
-	// TODO gemeinsame Datenstruktur
-	var data common.SubscribeRequest
-	if err := c.ShouldBindJSON(&data); err != nil {
+	var request common.SubscribeRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	creator, err := h.profileService.LocalSubscribe(data.Subscriber, data.CreatorName)
+	creator, err := h.profileService.LocalSubscribe(request.Subscriber, request.CreatorName)
+	var response *common.SubscribeResponse
 	if err == nil {
-		c.JSON(http.StatusOK, &common.SubscribeResponse{
-			User: &repository.User{
+		response = &common.SubscribeResponse{
+			User: &data.User{
 				ID:       creator.ID,
 				Username: creator.Username,
 			},
-		})
+		}
 	} else {
-		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+		response = &common.SubscribeResponse{
+			Error: err.Error(),
+		}
 	}
+	c.JSON(http.StatusOK, response)
 }

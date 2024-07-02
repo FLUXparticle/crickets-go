@@ -1,8 +1,8 @@
 package common
 
-import "crickets-go/repository"
+import "crickets-go/data"
 
 type SubscribeResponse struct {
-	Error string           `json:"error,omitempty"`
-	User  *repository.User `json:"user,omitempty"`
+	Error string     `json:"error,omitempty"`
+	User  *data.User `json:"user,omitempty"`
 }

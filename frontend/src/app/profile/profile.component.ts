@@ -7,9 +7,9 @@ import {HttpClient} from '@angular/common/http';
     styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent implements OnInit {
-    subscriberCount: number = 0;
     success: string = '';
     error: string = '';
+    subscriberCount: number = 0;
     subscribeForm = {
         server: '',
         creatorName: ''
@@ -28,7 +28,7 @@ export class ProfileComponent implements OnInit {
                     this.subscriberCount = data.subscriberCount;
                 },
                 error: (err) => {
-                    console.error('Error fetching profile data:', err);
+                    this.error = `Error fetching profile data: ${err}`;
                 }
             });
     }

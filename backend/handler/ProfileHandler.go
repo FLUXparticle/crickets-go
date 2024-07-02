@@ -30,7 +30,7 @@ func (h *ProfileHandler) Subscribe(c *gin.Context) {
 		CreatorName string `json:"creatorName" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
 		return
 	}
 

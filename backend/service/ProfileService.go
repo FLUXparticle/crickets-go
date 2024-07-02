@@ -3,6 +3,7 @@ package service
 import (
 	"crickets-go/common"
 	"crickets-go/config"
+	"crickets-go/data"
 	"crickets-go/repository"
 	"errors"
 	"fmt"
@@ -27,7 +28,7 @@ func (s *ProfileService) SubscriberCount(creatorID int32) int {
 	return len(s.subscriptionRepository.FindByCreatorID(creatorID))
 }
 
-func (s *ProfileService) Subscribe(subscriber *repository.User, creatorServer string, creatorName string) (string, error) {
+func (s *ProfileService) Subscribe(subscriber *data.User, creatorServer string, creatorName string) (string, error) {
 	if creatorServer == "" {
 		creator, err := s.LocalSubscribe(subscriber, creatorName)
 		if err != nil {
@@ -39,7 +40,7 @@ func (s *ProfileService) Subscribe(subscriber *repository.User, creatorServer st
 		if err != nil {
 			return "", err
 		}
-		s.subscriptionRepository.Save(&repository.Subscription{
+		s.subscriptionRepository.Save(&data.Subscription{
 			Creator:    creator,
 			Subscriber: subscriber,
 		})
@@ -47,12 +48,12 @@ func (s *ProfileService) Subscribe(subscriber *repository.User, creatorServer st
 	}
 }
 
-func (s *ProfileService) LocalSubscribe(subscriber *repository.User, creatorName string) (*repository.User, error) {
+func (s *ProfileService) LocalSubscribe(subscriber *data.User, creatorName string) (*data.User, error) {
 	creator := s.userRepository.FindByUsername(creatorName)
 	if creator == nil {
 		return nil, errors.New(fmt.Sprintf("user '%s' not found", creatorName))
 	}
-	subscription := &repository.Subscription{
+	subscription := &data.Subscription{
 		Creator:    creator,
 		Subscriber: subscriber,
 	}
@@ -60,12 +61,12 @@ func (s *ProfileService) LocalSubscribe(subscriber *repository.User, creatorName
 	return creator, nil
 }
 
-func (s *ProfileService) remoteSubscribe(creatorServer string, creatorName string, subscriber *repository.User) (*repository.User, error) {
+func (s *ProfileService) remoteSubscribe(creatorServer string, creatorName string, subscriber *data.User) (*data.User, error) {
 	client := resty.New()
 
 	// Daten für die Anfrage
-	data := &common.SubscribeRequest{
-		Subscriber: &repository.User{
+	request := &common.SubscribeRequest{
+		Subscriber: &data.User{
 			ID:       subscriber.ID,
 			Server:   s.config.Hostname,
 			Username: subscriber.Username,
@@ -77,7 +78,7 @@ func (s *ProfileService) remoteSubscribe(creatorServer string, creatorName strin
 	response, err := client.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("X-API-KEY", s.config.ApiKey).
-		SetBody(data).
+		SetBody(request).
 		SetResult(&common.SubscribeResponse{}).
 		Post(fmt.Sprintf("http://%s:8080/api/internal/subscribe", creatorServer))
 
@@ -93,7 +94,7 @@ func (s *ProfileService) remoteSubscribe(creatorServer string, creatorName strin
 		return nil, errors.New(subscribeResponse.Error)
 	} else {
 		creator := subscribeResponse.User
-		return &repository.User{
+		return &data.User{
 			ID:       creator.ID,
 			Server:   creatorServer,
 			Username: creator.Username,

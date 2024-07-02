@@ -1,6 +1,7 @@
 package service
 
 import (
+	"crickets-go/data"
 	"crickets-go/repository"
 	"crypto/rand"
 	"encoding/hex"
@@ -19,14 +20,14 @@ type UserService struct {
 	userRepository *repository.UserRepository
 
 	// In-Memory-Storage für Sessions (in einer echten Anwendung sollte dies persistent sein)
-	sessions map[string]*repository.User
+	sessions map[string]*data.User
 }
 
 func NewUserService(logger *log.Logger, userRepository *repository.UserRepository) *UserService {
 	return &UserService{
 		logger:         logger,
 		userRepository: userRepository,
-		sessions:       make(map[string]*repository.User),
+		sessions:       make(map[string]*data.User),
 	}
 }
 
@@ -55,7 +56,7 @@ func (s *UserService) Login(username, password string) (string, error) {
 	return "", errors.New("invalid credentials")
 }
 
-func (s *UserService) User(sessionToken string) *repository.User {
+func (s *UserService) User(sessionToken string) *data.User {
 	return s.sessions[sessionToken]
 }
 

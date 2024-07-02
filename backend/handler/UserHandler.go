@@ -2,7 +2,7 @@ package handler
 
 import (
 	"crickets-go/config"
-	"crickets-go/repository"
+	"crickets-go/data"
 	"crickets-go/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -111,7 +111,7 @@ func (h *UserHandler) Username(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"username": username})
 }
 
-func (h *UserHandler) getUser(c *gin.Context) *repository.User {
+func (h *UserHandler) getUser(c *gin.Context) *data.User {
 	sessionToken := c.GetString(sessionCookieName)
 	return h.userService.User(sessionToken)
 }

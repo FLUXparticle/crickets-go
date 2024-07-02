@@ -1,4 +1,4 @@
-package repository
+package data
 
 type Subscription struct {
 	Creator    *User

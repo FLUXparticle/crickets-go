@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"crickets-go/config"
+	"crickets-go/data"
 	"crickets-go/gen/timeline"
 	"crickets-go/handler"
 	"crickets-go/repository"
@@ -150,7 +151,7 @@ func (s *server) TimelineUpdates(req *timeline.TimelineUpdateRequest, stream tim
 	}
 }
 
-func convertPost(update *repository.Post) *timeline.Post {
+func convertPost(update *data.Post) *timeline.Post {
 	post := &timeline.Post{
 		Username:  update.Creator.Username,
 		Content:   update.Content,

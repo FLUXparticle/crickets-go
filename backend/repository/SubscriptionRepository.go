@@ -1,22 +1,24 @@
 package repository
 
+import "crickets-go/data"
+
 type SubscriptionRepository struct {
-	subscriptions []*Subscription
+	subscriptions []*data.Subscription
 }
 
 func NewSubscriptionRepository() *SubscriptionRepository {
 	return &SubscriptionRepository{
 		// Wäre nicht unbedingt nätig, weil nil in den meisten Fällen auch als Slice funktioniert.
-		subscriptions: make([]*Subscription, 0),
+		subscriptions: make([]*data.Subscription, 0),
 	}
 }
 
-func (s *SubscriptionRepository) FindAll() []*Subscription {
+func (s *SubscriptionRepository) FindAll() []*data.Subscription {
 	return s.subscriptions
 }
 
-func (r *SubscriptionRepository) FindByCreatorID(creatorID int32) []*Subscription {
-	result := make([]*Subscription, 0)
+func (r *SubscriptionRepository) FindByCreatorID(creatorID int32) []*data.Subscription {
+	result := make([]*data.Subscription, 0)
 
 	for _, sub := range r.subscriptions {
 		if sub.Creator.ID == creatorID {
@@ -27,8 +29,8 @@ func (r *SubscriptionRepository) FindByCreatorID(creatorID int32) []*Subscriptio
 	return result
 }
 
-func (r *SubscriptionRepository) FindBySubscriberServerAndSubscriberID(subscriberServer string, subscriberID int32) []*Subscription {
-	result := make([]*Subscription, 0)
+func (r *SubscriptionRepository) FindBySubscriberServerAndSubscriberID(subscriberServer string, subscriberID int32) []*data.Subscription {
+	result := make([]*data.Subscription, 0)
 
 	for _, sub := range r.subscriptions {
 		if sub.Subscriber.Server == subscriberServer && sub.Subscriber.ID == subscriberID {
@@ -39,6 +41,6 @@ func (r *SubscriptionRepository) FindBySubscriberServerAndSubscriberID(subscribe
 	return result
 }
 
-func (r *SubscriptionRepository) Save(subscription *Subscription) {
+func (r *SubscriptionRepository) Save(subscription *data.Subscription) {
 	r.subscriptions = append(r.subscriptions, subscription)
 }

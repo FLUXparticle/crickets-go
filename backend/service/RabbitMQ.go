@@ -1,7 +1,7 @@
 package service
 
 import (
-	"crickets-go/repository"
+	"crickets-go/data"
 	"encoding/json"
 	"github.com/streadway/amqp"
 )
@@ -14,7 +14,7 @@ func NewRabbitMQ(rabbitMQChannel *amqp.Channel) *RabbitMQ {
 	return &RabbitMQ{rabbitMQChannel: rabbitMQChannel}
 }
 
-func (r *RabbitMQ) Subscribe(topic string) chan *repository.Post {
+func (r *RabbitMQ) Subscribe(topic string) chan *data.Post {
 	messages, err := r.rabbitMQChannel.Consume(
 		topic, // queue
 		"",    // consumer
@@ -29,10 +29,10 @@ func (r *RabbitMQ) Subscribe(topic string) chan *repository.Post {
 		panic(err)
 	}
 
-	ch := make(chan *repository.Post)
+	ch := make(chan *data.Post)
 	go func() {
 		for msg := range messages {
-			var post repository.Post
+			var post data.Post
 			err := json.Unmarshal(msg.Body, &post)
 			if err != nil {
 				// Handle error
@@ -49,11 +49,11 @@ func (r *RabbitMQ) Subscribe(topic string) chan *repository.Post {
 	return ch
 }
 
-func (r *RabbitMQ) Unsubscribe(topic string, ch chan *repository.Post) {
+func (r *RabbitMQ) Unsubscribe(topic string, ch chan *data.Post) {
 	panic("implement me")
 }
 
-func (r *RabbitMQ) Publish(topic string, post *repository.Post) error {
+func (r *RabbitMQ) Publish(topic string, post *data.Post) error {
 	// Marshalling des Posts in JSON
 	body, err := json.Marshal(post)
 	if err != nil {
