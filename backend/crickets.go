@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"crickets-go/config"
 	"crickets-go/gen/timeline"
 	"crickets-go/handler"
 	"crickets-go/repository"
@@ -190,6 +191,8 @@ func main() {
 			NewGRPCServer,
 			NewGinHandler,
 			NewLogger,
+
+			config.NewConfig,
 
 			handler.NewUserHandler,
 			handler.NewProfileHandler,

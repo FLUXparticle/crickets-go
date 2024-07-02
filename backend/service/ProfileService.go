@@ -2,20 +2,22 @@ package service
 
 import (
 	"crickets-go/common"
+	"crickets-go/config"
 	"crickets-go/repository"
 	"errors"
 	"fmt"
 	"github.com/go-resty/resty/v2"
-	"os"
 )
 
 type ProfileService struct {
+	config                 *config.Config
 	userRepository         *repository.UserRepository
 	subscriptionRepository *repository.SubscriptionRepository
 }
 
-func NewProfileService(userRepository *repository.UserRepository, subscriptionRepository *repository.SubscriptionRepository) *ProfileService {
+func NewProfileService(config *config.Config, userRepository *repository.UserRepository, subscriptionRepository *repository.SubscriptionRepository) *ProfileService {
 	return &ProfileService{
+		config:                 config,
 		userRepository:         userRepository,
 		subscriptionRepository: subscriptionRepository,
 	}
@@ -61,15 +63,11 @@ func (s *ProfileService) LocalSubscribe(subscriber *repository.User, creatorName
 func (s *ProfileService) remoteSubscribe(creatorServer string, creatorName string, subscriber *repository.User) (*repository.User, error) {
 	client := resty.New()
 
-	// TODO Hostname über Fx (Config) default: localhost
-	hostname, _ := os.Hostname()
-	apiKey := os.Getenv("API_KEY")
-
 	// Daten für die Anfrage
 	data := &common.SubscribeRequest{
 		Subscriber: &repository.User{
 			ID:       subscriber.ID,
-			Server:   hostname,
+			Server:   s.config.Hostname,
 			Username: subscriber.Username,
 		},
 		CreatorName: creatorName,
@@ -78,7 +76,7 @@ func (s *ProfileService) remoteSubscribe(creatorServer string, creatorName strin
 	// Anfrage an den Endpunkt senden
 	response, err := client.R().
 		SetHeader("Content-Type", "application/json").
-		SetHeader("X-API-KEY", apiKey).
+		SetHeader("X-API-KEY", s.config.ApiKey).
 		SetBody(data).
 		SetResult(&common.SubscribeResponse{}).
 		Post(fmt.Sprintf("http://%s:8080/api/internal/subscribe", creatorServer))

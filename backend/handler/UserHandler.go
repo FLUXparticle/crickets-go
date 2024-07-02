@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crickets-go/config"
 	"crickets-go/repository"
 	"crickets-go/service"
 	"github.com/gin-gonic/gin"
@@ -11,11 +12,13 @@ import (
 const sessionCookieName = "sessionToken"
 
 type UserHandler struct {
+	config      *config.Config
 	userService *service.UserService
 }
 
-func NewUserHandler(service *service.UserService) *UserHandler {
+func NewUserHandler(config *config.Config, service *service.UserService) *UserHandler {
 	return &UserHandler{
+		config:      config,
 		userService: service,
 	}
 }
@@ -104,7 +107,8 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 func (h *UserHandler) Username(c *gin.Context) {
 	user := h.getUser(c)
-	c.JSON(http.StatusOK, gin.H{"username": user.Username})
+	username := user.Username + "@" + h.config.Hostname
+	c.JSON(http.StatusOK, gin.H{"username": username})
 }
 
 func (h *UserHandler) getUser(c *gin.Context) *repository.User {
