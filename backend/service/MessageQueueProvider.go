@@ -1,24 +1,27 @@
 package service
 
 import (
+	"crickets-go/config"
 	"github.com/streadway/amqp"
 	"log"
 )
 
 type MessageQueueProvider struct {
 	logger       *log.Logger
+	config       *config.Config
 	messageQueue MessageQueue
 }
 
-func NewMessageQueueProvider(logger *log.Logger) *MessageQueueProvider {
+func NewMessageQueueProvider(logger *log.Logger, config *config.Config) *MessageQueueProvider {
 	return &MessageQueueProvider{
 		logger: logger,
+		config: config,
 	}
 }
 
 func (p *MessageQueueProvider) GetMessageQueue() MessageQueue {
 	if p.messageQueue == nil {
-		mq, err := tryConnectRabbitMQ()
+		mq, err := p.tryConnectRabbitMQ()
 		if err != nil {
 			p.logger.Println("WARNING:", err)
 			mq = NewPubSub()
@@ -28,9 +31,9 @@ func (p *MessageQueueProvider) GetMessageQueue() MessageQueue {
 	return p.messageQueue
 }
 
-func tryConnectRabbitMQ() (MessageQueue, error) {
-	// TODO Hostname aus Variable AMQP_HOST
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+func (p *MessageQueueProvider) tryConnectRabbitMQ() (MessageQueue, error) {
+	host := p.config.AmqpHost
+	conn, err := amqp.Dial("amqp://guest:guest@" + host + ":5672/")
 	if err != nil {
 		return nil, err
 	}
@@ -40,5 +43,5 @@ func tryConnectRabbitMQ() (MessageQueue, error) {
 		return nil, err
 	}
 
-	return NewRabbitMQ(channel), nil
+	return NewRabbitMQ(p.logger, p.config, channel), nil
 }

@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"crickets-go/data"
 	"crickets-go/service"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"log"
-	"time"
 )
 
 var upgrader = websocket.Upgrader{
@@ -52,19 +50,18 @@ func (h *ChatHandler) ChatWebSocket(c *gin.Context) {
 	}()
 
 	for {
-		var post data.Post
-		if err := conn.ReadJSON(&post); err != nil {
+		var body struct {
+			Content string `json:"content" binding:"required"`
+		}
+		if err := conn.ReadJSON(&body); err != nil {
 			if websocket.IsUnexpectedCloseError(err) {
 				log.Println("Unexpected WebSocket close:", err)
 			}
 			break
 		}
 
-		post.Creator = user
-		post.CreatedAt = time.Now()
-
 		// Post the chat message
-		if err := h.chatService.SendChatMessage(&post); err != nil {
+		if err := h.chatService.SendChatMessage(user, body.Content); err != nil {
 			h.logger.Println("Failed to send message:", err)
 		}
 	}

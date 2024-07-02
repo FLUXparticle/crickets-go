@@ -107,7 +107,10 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 func (h *UserHandler) Username(c *gin.Context) {
 	user := h.getUser(c)
-	username := user.Username + "@" + h.config.Hostname
+	username := user.Username
+	if len(h.config.Hostname) > 0 {
+		username += "@" + h.config.Hostname
+	}
 	c.JSON(http.StatusOK, gin.H{"username": username})
 }
 
