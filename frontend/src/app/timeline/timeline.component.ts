@@ -2,9 +2,11 @@ import {Component, NgZone, OnDestroy, OnInit} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 
 interface Post {
+    id: number;
     creatorName: string;
     content: string;
     createdAt: string;
+    likes: number;
 }
 
 @Component({
@@ -40,10 +42,16 @@ export class TimelineComponent implements OnInit, OnDestroy {
     subscribeToTimeline() {
         this.eventSource = new EventSource('/api/timeline');
         this.eventSource.onmessage = (event) => {
-            console.log(event);
             this.ngZone.run(() => {
-                const post = JSON.parse(event.data);
-                this.timeline.push(post);
+                const updatedPost = JSON.parse(event.data) as Post;
+                const index = this.timeline.findIndex(post => post.id === updatedPost.id /*&& post.server === updatedPost.server*/);
+                if (index !== -1) {
+                    // Post aktualisieren
+                    this.timeline[index] = updatedPost;
+                } else {
+                    // Neuen Post hinzufügen
+                    this.timeline.push(updatedPost);
+                }
             });
         };
         this.eventSource.onerror = (event) => {
@@ -84,6 +92,16 @@ export class TimelineComponent implements OnInit, OnDestroy {
                 }
             });
         }
+    }
+
+    likePost(post: Post): void {
+        this.http.post('/api/like', {
+            postId: post.id,
+        }).subscribe({
+            error: (err) => {
+                this.errorSearch = `Error liking post: ${err}`;
+            }
+        });
     }
 
 }

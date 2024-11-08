@@ -75,6 +75,25 @@ func (h *TimelineHandler) Timeline(c *gin.Context) {
 	})
 }
 
+func (h *TimelineHandler) LikePost(c *gin.Context) {
+	var data struct {
+		PostID int64 `json:"postId" binding:"required"`
+		//Server string `json:"server" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&data); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.timelineService.LikePost(data.PostID, "")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
 func displayPost(post *data.Post) map[string]any {
 	creator := post.Creator
 	creatorName := creator.Username
@@ -82,8 +101,10 @@ func displayPost(post *data.Post) map[string]any {
 		creatorName += "@" + creator.Server
 	}
 	return map[string]any{
+		"id":          post.ID,
 		"creatorName": creatorName,
 		"content":     post.Content,
 		"createdAt":   post.CreatedAt,
+		"likes":       post.Likes,
 	}
 }

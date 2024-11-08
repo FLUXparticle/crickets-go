@@ -5,10 +5,13 @@ import (
 	"crickets-go/data"
 	"crickets-go/gen/timeline"
 	"crickets-go/repository"
+	"errors"
 	"fmt"
+	"github.com/go-resty/resty/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -144,6 +147,22 @@ func (s *TimelineService) Search(server string, query string) []*data.Post {
 	}
 }
 
+func (s *TimelineService) LikePost(postID int64, server string) error {
+	if server == "" {
+		// Lokaler Post
+		post := s.postRepository.FindByID(postID)
+		if post != nil {
+			post.Likes += 1
+			return s.pubSub.Publish(userID(post.Creator.ID), post)
+		} else {
+			return errors.New("Post nicht gefunden")
+		}
+	} else {
+		// Post ist auf einem anderen Server
+		return s.sendLikeToRemoteServer(postID, server)
+	}
+}
+
 func (s *TimelineService) getClient(server string) (timeline.TimelineServiceClient, error) {
 	timelineClient, exists := s.clientMap[server]
 
@@ -158,6 +177,26 @@ func (s *TimelineService) getClient(server string) (timeline.TimelineServiceClie
 	}
 
 	return timelineClient, nil
+}
+
+// TODO mit gRPC
+func (s *TimelineService) sendLikeToRemoteServer(postID int64, server string) error {
+	client := resty.New()
+
+	request := map[string]any{
+		"postId": postID,
+	}
+
+	response, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(request).
+		Post(fmt.Sprintf("http://%s:8080/api/internal/like", server))
+
+	if err != nil || response.StatusCode() != http.StatusOK {
+		return errors.New("Fehler beim Senden des Likes an den entfernten Server")
+	}
+
+	return nil
 }
 
 func convertPost(server string, post *timeline.Post) *data.Post {

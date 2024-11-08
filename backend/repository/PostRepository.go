@@ -6,16 +6,29 @@ import (
 )
 
 type PostRepository struct {
-	posts []*data.Post
+	posts  []*data.Post
+	nextID int64
 }
 
 func NewPostRepository() *PostRepository {
 	return &PostRepository{
-		posts: make([]*data.Post, 0),
+		posts:  make([]*data.Post, 0),
+		nextID: 1,
 	}
 }
 
+func (r *PostRepository) FindByID(id int64) *data.Post {
+	for _, post := range r.posts {
+		if post.ID == id {
+			return post
+		}
+	}
+	return nil
+}
+
 func (r *PostRepository) Save(post *data.Post) {
+	post.ID = r.nextID
+	r.nextID++
 	r.posts = append(r.posts, post)
 }
 

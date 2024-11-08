@@ -7,6 +7,10 @@
             <span class="post-date">{{ post.createdAt | date:'short' }}</span>
         </div>
         <div class="post-content">{{ post.content }}</div>
+        <div class="post-likes">
+            Likes: {{ post.likes }}
+            <button (click)="likePost(post)">Like</button>
+        </div>
     </li>
 </ul>
 

@@ -67,6 +67,7 @@ func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.Pro
 		api.GET("/search", timelineHandler.Search)
 		api.POST("/post", timelineHandler.Post)
 		api.GET("/timeline", timelineHandler.Timeline)
+		api.POST("/like", timelineHandler.LikePost)
 
 		api.GET("/chatWS", chatHandler.ChatWebSocket)
 
@@ -75,6 +76,7 @@ func NewGinHandler(userHandler *handler.UserHandler, profileHandler *handler.Pro
 			internal := api.Group("/internal")
 
 			internal.POST("/subscribe", internalHandler.Subscribe)
+			// TODO internal.POST("/like", internalHandler.LikePost)
 		}
 
 		// Debug-Routes (müssen natürlich für den Release deaktiviert werden)
