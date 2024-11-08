@@ -7,11 +7,10 @@ import (
 	"crickets-go/repository"
 	"errors"
 	"fmt"
-	"github.com/go-resty/resty/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
-	"net/http"
+	"strings"
 	"time"
 )
 
@@ -147,7 +146,9 @@ func (s *TimelineService) Search(server string, query string) []*data.Post {
 	}
 }
 
-func (s *TimelineService) LikePost(postID int64, server string) error {
+func (s *TimelineService) LikePost(postID int64, creatorName string) error {
+	server, _ := parseCreatorName(creatorName)
+
 	if server == "" {
 		// Lokaler Post
 		post := s.postRepository.FindByID(postID)
@@ -158,9 +159,17 @@ func (s *TimelineService) LikePost(postID int64, server string) error {
 			return errors.New("Post nicht gefunden")
 		}
 	} else {
-		// Post ist auf einem anderen Server
+		// Remote Post
 		return s.sendLikeToRemoteServer(postID, server)
 	}
+}
+
+func parseCreatorName(creatorName string) (server string, username string) {
+	parts := strings.Split(creatorName, "@")
+	if len(parts) == 2 {
+		return parts[1], parts[0]
+	}
+	return "", creatorName
 }
 
 func (s *TimelineService) getClient(server string) (timeline.TimelineServiceClient, error) {
@@ -179,21 +188,22 @@ func (s *TimelineService) getClient(server string) (timeline.TimelineServiceClie
 	return timelineClient, nil
 }
 
-// TODO mit gRPC
 func (s *TimelineService) sendLikeToRemoteServer(postID int64, server string) error {
-	client := resty.New()
-
-	request := map[string]any{
-		"postId": postID,
+	client, err := s.getClient(server)
+	if err != nil {
+		return err
 	}
 
-	response, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(request).
-		Post(fmt.Sprintf("http://%s:8080/api/internal/like", server))
+	req := &timeline.LikePostRequest{
+		PostId: postID,
+	}
 
-	if err != nil || response.StatusCode() != http.StatusOK {
-		return errors.New("Fehler beim Senden des Likes an den entfernten Server")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	_, err = client.LikePost(ctx, req)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -201,6 +211,7 @@ func (s *TimelineService) sendLikeToRemoteServer(postID int64, server string) er
 
 func convertPost(server string, post *timeline.Post) *data.Post {
 	r := &data.Post{
+		ID: post.PostId,
 		Creator: &data.User{
 			Username: post.Username,
 			Server:   server,

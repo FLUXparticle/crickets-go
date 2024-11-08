@@ -48,8 +48,18 @@ func (s *GRPCHandler) TimelineUpdates(request *timeline.TimelineUpdateRequest, s
 	}
 }
 
+func (s *GRPCHandler) LikePost(ctx context.Context, request *timeline.LikePostRequest) (*timeline.Empty, error) {
+	err := s.timelineService.LikePost(request.PostId, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return &timeline.Empty{}, nil
+}
+
 func convertPost(update *data.Post) *timeline.Post {
 	post := &timeline.Post{
+		PostId:    update.ID,
 		Username:  update.Creator.Username,
 		Content:   update.Content,
 		CreatedAt: timestamppb.New(update.CreatedAt),

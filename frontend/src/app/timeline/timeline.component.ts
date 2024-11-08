@@ -97,6 +97,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
     likePost(post: Post): void {
         this.http.post('/api/like', {
             postId: post.id,
+            creatorName: post.creatorName,
         }).subscribe({
             error: (err) => {
                 this.errorSearch = `Error liking post: ${err}`;
